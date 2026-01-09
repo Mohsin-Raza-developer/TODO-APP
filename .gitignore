@@ -1,0 +1,10 @@
+__pycache__
+.mypy_cache
+.ruff_cache
+.venv
+guide
+.python-version
+spec-romun-urdu.md
+test_performance.py
+plan-romun-urdu.md
+__init__.py
