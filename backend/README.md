@@ -1,0 +1,589 @@
+# Backend: Todo Application Database Schema
+
+**Phase II Multi-User Todo Application Backend**
+
+This directory contains the database schema implementation for a multi-user todo application using Neon Serverless PostgreSQL, SQLModel ORM, and Alembic migrations.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Database Setup](#database-setup)
+- [Alembic Migrations](#alembic-migrations)
+- [Running Tests](#running-tests)
+- [Development Workflow](#development-workflow)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+The database schema implements:
+- **User Management**: User accounts with Better Auth JWT integration
+- **Task Management**: Multi-user task isolation with `user_id` foreign keys
+- **ID Architect Pattern**: Sequential BIGINT IDs (never reused after deletion)
+- **Timestamp Automation**: Database-level `created_at`/`updated_at` tracking with UPDATE triggers
+- **GDPR Compliance**: CASCADE deletion for "right to be forgotten"
+
+**Schema Entities**:
+- `users` table: User accounts (id, email, name, created_at)
+- `tasks` table: User tasks (id, user_id, title, description, completed, created_at, updated_at)
+
+**Key Features**:
+- User-task relationship with `ON DELETE CASCADE`
+- B-tree index on `tasks.user_id` for efficient queries (<100ms)
+- Database-managed timestamps (DEFAULT NOW(), UPDATE trigger)
+- Sequential IDs that never decrement (ID Architect pattern)
+
+---
+
+## Tech Stack
+
+- **Language**: Python 3.13+
+- **Database**: Neon Serverless PostgreSQL (cloud-hosted, auto-scaling)
+- **ORM**: SQLModel 0.0.14+ (SQLAlchemy + Pydantic)
+- **Migrations**: Alembic 1.13+
+- **Database Driver**: psycopg2-binary 2.9+
+- **Testing**: pytest 8.0+, pytest-asyncio
+- **Environment**: python-dotenv 1.0+
+
+---
+
+## Database Setup
+
+### Prerequisites
+
+- Python 3.13+ installed
+- Neon PostgreSQL account (free tier available)
+- Terminal/command line access
+
+### Step 1: Provision Neon PostgreSQL Database
+
+1. **Create Neon Account**
+   - Visit [https://neon.tech](https://neon.tech)
+   - Sign up (GitHub OAuth recommended)
+   - Verify email if required
+
+2. **Create New Project**
+   - Click "Create Project" in Neon dashboard
+   - Project name: `todo-app-phase-ii` (or your choice)
+   - Region: Choose closest to you (e.g., `us-east-1`, `us-east-2`)
+   - PostgreSQL version: Latest stable (15+ recommended)
+   - Click "Create Project"
+
+3. **Get Pooled Connection String**
+   - After project creation, navigate to "Connection Details"
+   - **CRITICAL**: Select **"Pooled connection"** (NOT "Direct connection")
+   - Look for URL with `-pooler` suffix in hostname
+   - Example: `postgresql://user:pass@ep-abc-123-pooler.us-east-2.aws.neon.tech/neondb`
+   - Copy the pooled connection string
+
+**Why Pooled Connection?**
+
+Neon's pooled endpoint uses PgBouncer to handle 10,000+ concurrent connections, essential for serverless deployments. Direct endpoints only support ~100 connections and will fail under load.
+
+**Verification**:
+```bash
+# Test connection (replace with your actual URL)
+psql "postgresql://user:pass@ep-abc-pooler.us-east-2.aws.neon.tech/neondb" -c "SELECT version();"
+
+# Expected output: PostgreSQL 15.x version string
+```
+
+### Step 2: Environment Configuration
+
+1. **Create `.env` file** in the `backend/` directory:
+
+```bash
+cd backend/
+touch .env
+```
+
+2. **Add database credentials** to `.env`:
+
+```bash
+# Neon PostgreSQL pooled connection string
+# Format: postgresql://user:password@host-pooler.region.aws.neon.tech/dbname?sslmode=require
+DATABASE_URL=postgresql://YOUR_USER:YOUR_PASSWORD@ep-xxx-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Better Auth secret for JWT token verification
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+BETTER_AUTH_SECRET=your-secret-key-here-minimum-32-characters
+```
+
+**Generate Better Auth Secret**:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Example output: kJ3mP9qR2sT5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ
+```
+
+3. **Verify `.env` is in `.gitignore`**:
+
+```bash
+# Check if .env is ignored (should return nothing)
+git check-ignore .env
+
+# If not ignored, add to .gitignore
+echo ".env" >> .gitignore
+```
+
+**SECURITY WARNING**: Never commit `.env` to version control. It contains sensitive database credentials.
+
+### Step 3: Install Python Dependencies
+
+1. **Create virtual environment** (if not already created):
+
+```bash
+# From repository root
+python3.13 -m venv .venv
+
+# Activate virtual environment
+source .venv/bin/activate  # Linux/Mac
+# OR
+.venv\Scripts\activate  # Windows
+```
+
+2. **Install dependencies**:
+
+```bash
+cd backend/
+
+# Install from pyproject.toml
+pip install -e .
+
+# OR install specific packages
+pip install sqlmodel>=0.0.14 alembic>=1.13.0 psycopg2-binary>=2.9.0 python-dotenv>=1.0.0
+```
+
+**Verify Installation**:
+```bash
+python -c "import sqlmodel, alembic; print('✓ Dependencies installed')"
+# Expected output: ✓ Dependencies installed
+```
+
+---
+
+## Alembic Migrations
+
+Alembic manages database schema versions. All schema changes must go through migrations for safe deployments and rollbacks.
+
+### Initialize Alembic (First Time Only)
+
+**NOTE**: Alembic is already initialized in this repository. Skip this section unless starting fresh.
+
+```bash
+cd backend/
+alembic init alembic
+
+# Edit alembic.ini to set sqlalchemy.url from environment
+# Edit alembic/env.py to import models and load .env
+```
+
+### Apply Migrations
+
+1. **Check current migration state**:
+
+```bash
+cd backend/
+alembic current
+
+# Expected output:
+# db201faec95e (head)  # Initial schema migration
+# OR
+# (empty)  # No migrations applied yet
+```
+
+2. **Apply all pending migrations**:
+
+```bash
+alembic upgrade head
+
+# Expected output:
+# INFO  [alembic.runtime.migration] Running upgrade  -> db201faec95e, Initial schema
+# INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+```
+
+3. **Verify schema created**:
+
+```bash
+# Connect to database and list tables
+psql $DATABASE_URL -c "\dt"
+
+# Expected output:
+#          List of relations
+#  Schema |   Name   | Type  |   Owner
+# --------+----------+-------+-----------
+#  public | alembic_version | table | neondb_owner
+#  public | tasks    | table | neondb_owner
+#  public | users    | table | neondb_owner
+```
+
+4. **Verify schema structure**:
+
+```bash
+# Show users table structure
+psql $DATABASE_URL -c "\d users"
+
+# Expected columns: id (TEXT), email (TEXT UNIQUE), name (TEXT), created_at (TIMESTAMP)
+
+# Show tasks table structure
+psql $DATABASE_URL -c "\d tasks"
+
+# Expected columns: id (BIGINT), user_id (TEXT FK), title (VARCHAR(200)),
+#                   description (TEXT), completed (BOOLEAN),
+#                   created_at (TIMESTAMP), updated_at (TIMESTAMP)
+
+# Show indexes
+psql $DATABASE_URL -c "\di"
+
+# Expected: ix_tasks_user_id (B-tree index on tasks.user_id)
+```
+
+### Rollback Migrations
+
+**WARNING**: Rolling back migrations will delete data. Only use in development or with proper backups.
+
+```bash
+# Rollback one migration
+alembic downgrade -1
+
+# Rollback all migrations (drop entire schema)
+alembic downgrade base
+
+# Re-apply after rollback
+alembic upgrade head
+```
+
+**Verify Rollback**:
+```bash
+# After downgrade base, tables should be gone
+psql $DATABASE_URL -c "\dt"
+
+# Expected output: No relations found (or only alembic_version)
+```
+
+### Create New Migration
+
+When modifying SQLModel models, generate a new migration:
+
+```bash
+# Auto-generate migration from model changes
+alembic revision --autogenerate -m "Add column X to tasks"
+
+# Edit generated migration file in alembic/versions/
+# Review changes, add manual operations if needed
+
+# Apply new migration
+alembic upgrade head
+```
+
+**Best Practices**:
+- Review auto-generated migrations before applying (Alembic may miss some changes)
+- Test migrations on a copy of production data before deploying
+- Always implement both `upgrade()` and `downgrade()` functions
+- Include database-level triggers/functions in manual migration steps (Alembic doesn't auto-detect these)
+
+---
+
+## Running Tests
+
+The test suite validates schema behavior using pytest with transactional rollback for isolation (100x faster than recreating database per test).
+
+### Prerequisites
+
+```bash
+# Install test dependencies
+pip install pytest>=8.0.0 pytest-asyncio
+
+# Ensure .env file exists with DATABASE_URL
+```
+
+### Run All Tests
+
+```bash
+cd backend/
+
+# Run all integration tests with verbose output
+python -m pytest tests/ -v
+
+# Expected output:
+# ============================= test session starts ==============================
+# ...
+# tests/test_cascade_deletion.py::TestCascadeDeletion::test_cascade_deletion_basic PASSED
+# tests/test_constraints.py::TestDatabaseConstraints::test_null_user_id_rejected PASSED
+# tests/test_id_architect.py::TestIDArchitect::test_sequential_id_generation PASSED
+# tests/test_migrations.py::TestMigrationReversibility::test_migration_upgrade_downgrade PASSED
+# tests/test_timestamps.py::TestTimestampAutomation::test_created_at_auto_set PASSED
+# tests/test_user_model.py::TestUserModel::test_user_creation PASSED
+# ...
+# ==================== 24 passed, 8 warnings in 133.45s =====================
+```
+
+### Run Specific Test Suites
+
+```bash
+# ID Architect pattern tests
+pytest tests/test_id_architect.py -v
+
+# Timestamp automation tests
+pytest tests/test_timestamps.py -v
+
+# Better Auth user model tests
+pytest tests/test_user_model.py -v
+
+# Migration rollback tests
+pytest tests/test_migrations.py -v -s  # -s shows print output
+
+# CASCADE deletion tests
+pytest tests/test_cascade_deletion.py -v
+
+# Database constraint tests
+pytest tests/test_constraints.py -v
+```
+
+### Test Coverage
+
+Current test coverage (24 tests):
+
+| Test Suite | Tests | Coverage |
+|------------|-------|----------|
+| ID Architect (test_id_architect.py) | 3 | Sequential IDs, ID reuse prevention, bulk deletion |
+| CASCADE Deletion (test_cascade_deletion.py) | 3 | User deletion cascades to tasks, multi-user isolation |
+| Constraints (test_constraints.py) | 7 | NOT NULL, UNIQUE, Foreign Key, VARCHAR(200) limits |
+| Timestamps (test_timestamps.py) | 5 | DEFAULT NOW(), UPDATE trigger, created_at immutability |
+| User Model (test_user_model.py) | 5 | Better Auth string IDs, email uniqueness, minimal schema |
+| Migrations (test_migrations.py) | 1 | Upgrade/downgrade reversibility, schema validation |
+
+**Performance**:
+- Test execution: ~133 seconds (2:13) for full suite
+- Transaction-based isolation: 100x faster than database recreation
+- All tests use same database (no cleanup needed)
+
+---
+
+## Development Workflow
+
+### Daily Development
+
+1. **Start development session**:
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Navigate to backend
+cd backend/
+
+# Verify database connection
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM tasks;"
+```
+
+2. **Make schema changes**:
+
+```bash
+# Edit models in src/models.py
+# Generate migration
+alembic revision --autogenerate -m "Description of changes"
+
+# Review migration in alembic/versions/
+# Apply migration
+alembic upgrade head
+
+# Run tests to verify
+pytest tests/ -v
+```
+
+3. **Manual database queries**:
+
+```bash
+# Create test user
+psql $DATABASE_URL -c "INSERT INTO users (id, email, name) VALUES ('user_123', 'test@example.com', 'Test User');"
+
+# Create test tasks
+psql $DATABASE_URL -c "INSERT INTO tasks (user_id, title) VALUES ('user_123', 'My first task'), ('user_123', 'My second task');"
+
+# Query user tasks
+psql $DATABASE_URL -c "SELECT * FROM tasks WHERE user_id = 'user_123';"
+
+# Verify CASCADE deletion
+psql $DATABASE_URL -c "DELETE FROM users WHERE id = 'user_123';"
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM tasks WHERE user_id = 'user_123';"  # Should return 0
+```
+
+### Query Performance Verification
+
+Verify that indexes are being used for efficient queries:
+
+```bash
+# Run EXPLAIN ANALYZE on user task query
+psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM tasks WHERE user_id = 'user_123';"
+
+# Expected output:
+# Index Scan using ix_tasks_user_id on tasks  (cost=0.14..8.16 rows=1 width=507) (actual time=0.017..0.019 rows=2 loops=1)
+#   Index Cond: (user_id = 'user_123'::text)
+# Planning Time: 0.063 ms
+# Execution Time: 0.036 ms
+
+# ✓ Confirms O(log n) performance with ix_tasks_user_id index
+```
+
+**Performance Benchmarks**:
+- Query with index: 0.036ms (O(log n))
+- Target: <100ms for 100 tasks per user
+- Actual: Well under target even at scale
+
+### Database Seeding
+
+Create development test data:
+
+```bash
+# Run seed script (if implemented)
+python scripts/seed_database.py
+
+# Verify seeded data
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM users;"   # Should show 2
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM tasks;"   # Should show 10
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. "ModuleNotFoundError: No module named 'models'"
+
+**Solution**: Ensure Python path includes `src/` directory.
+
+```bash
+# Add to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+
+# OR run from backend/ directory
+cd backend/
+python -m pytest tests/
+```
+
+#### 2. "Connection refused" or "could not connect to server"
+
+**Solution**: Verify DATABASE_URL uses pooled endpoint (`-pooler` suffix).
+
+```bash
+# Check .env file
+cat .env | grep DATABASE_URL
+
+# Should contain: ep-xxx-pooler.region.aws.neon.tech
+# NOT: ep-xxx.region.aws.neon.tech (missing -pooler)
+
+# Test connection manually
+psql $DATABASE_URL -c "SELECT 1;"
+```
+
+#### 3. "psycopg2.errors.UndefinedTable: relation 'users' does not exist"
+
+**Solution**: Apply Alembic migrations.
+
+```bash
+cd backend/
+alembic upgrade head
+
+# Verify schema created
+psql $DATABASE_URL -c "\dt"
+```
+
+#### 4. "alembic.util.exc.CommandError: Can't locate revision identified by 'head'"
+
+**Solution**: Alembic migrations not initialized.
+
+```bash
+# Check alembic/versions/ directory exists and contains migration files
+ls alembic/versions/
+
+# If empty, migrations need to be generated
+alembic revision --autogenerate -m "Initial schema"
+alembic upgrade head
+```
+
+#### 5. Tests fail with "transaction already deassociated from connection"
+
+**Solution**: This is a warning, not an error. Tests use transactional rollback for isolation.
+
+```bash
+# Warnings are expected - verify tests still pass
+pytest tests/ -v
+
+# Look for: X passed, Y warnings
+# As long as tests pass, warnings are safe to ignore
+```
+
+#### 6. "duplicate key value violates unique constraint 'users_email_key'"
+
+**Solution**: Email already exists in database (UNIQUE constraint enforced).
+
+```bash
+# Either use different email
+psql $DATABASE_URL -c "INSERT INTO users (id, email, name) VALUES ('user_456', 'different@example.com', 'User 2');"
+
+# OR delete existing user first
+psql $DATABASE_URL -c "DELETE FROM users WHERE email = 'test@example.com';"
+```
+
+---
+
+## Project Structure
+
+```
+backend/
+├── README.md                 # This file
+├── .env                      # Database credentials (NOT in git)
+├── .env.example              # Environment variable template
+├── pyproject.toml            # Python dependencies
+├── alembic.ini               # Alembic configuration
+├── alembic/
+│   ├── env.py                # Alembic environment setup
+│   ├── script.py.mako        # Migration template
+│   └── versions/
+│       └── db201faec95e_initial_schema.py  # Initial migration
+├── src/
+│   └── models.py             # SQLModel definitions (User, Task)
+├── tests/
+│   ├── conftest.py           # pytest fixtures
+│   ├── test_id_architect.py  # ID Architect pattern tests
+│   ├── test_cascade_deletion.py  # CASCADE deletion tests
+│   ├── test_constraints.py   # Database constraint tests
+│   ├── test_timestamps.py    # Timestamp automation tests
+│   ├── test_user_model.py    # User model & Better Auth tests
+│   └── test_migrations.py    # Migration rollback tests
+└── scripts/
+    └── seed_database.py      # Development data seeding
+```
+
+---
+
+## Next Steps
+
+After completing database setup:
+
+1. **Implement FastAPI endpoints** (Phase III) - CRUD operations for tasks
+2. **Integrate Better Auth** (Phase IV) - JWT authentication and user management
+3. **Deploy to production** - Docker containerization and cloud hosting
+
+For detailed implementation guidance, see:
+- `specs/002-database-schema/quickstart.md` - Step-by-step setup guide
+- `specs/002-database-schema/plan.md` - Technical architecture plan
+- `specs/002-database-schema/data-model.md` - SQLModel entity details
+
+---
+
+## Support
+
+For issues or questions:
+- Review `specs/002-database-schema/` documentation
+- Check Alembic logs: `alembic.log` (if configured)
+- Verify Neon dashboard for database status
+- Run test suite to validate schema: `pytest tests/ -v`
+
+**Constitution Principles Applied**:
+- Principle III: Persistent Relational State (PostgreSQL, SQLModel, Alembic)
+- Principle VI: Reusable Intelligence (Database Schema Architect, Multi-User Data Isolation)
+- Principle VII: Stateless Security (user_id foreign keys, CASCADE deletion)

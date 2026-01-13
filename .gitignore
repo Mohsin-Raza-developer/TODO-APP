@@ -8,3 +8,7 @@ spec-romun-urdu.md
 test_performance.py
 plan-romun-urdu.md
 __init__.py
+
+# Environment variables (contains secrets)
+backend/.env
+.env
