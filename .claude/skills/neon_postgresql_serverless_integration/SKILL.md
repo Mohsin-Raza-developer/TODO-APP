@@ -1,7 +1,6 @@
 ---
 name: "neon-postgresql-serverless-integration"
 description: "Serverless PostgreSQL integration with connection pooling, migration management, and cloud-native database patterns"
-version: "1.0.0"
 ---
 
 ## Context

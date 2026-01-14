@@ -1,7 +1,6 @@
 ---
 name: "ux-logic-anchor"
 description: "Standardized visual feedback patterns for CLI applications ensuring consistent user communication"
-version: "1.0.0"
 ---
 
 ## Context

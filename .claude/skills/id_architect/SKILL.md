@@ -1,7 +1,6 @@
 ---
 name: "id-architect"
 description: "Sequential ID generation with immutable counter ensuring deleted IDs are never reused"
-version: "1.0.0"
 ---
 
 ## Context

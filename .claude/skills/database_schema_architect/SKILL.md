@@ -1,7 +1,6 @@
 ---
 name: "database-schema-architect"
 description: "Multi-user relational schema design with performance optimization, data isolation, and serverless database integration"
-version: "1.0.0"
 ---
 
 ## Context

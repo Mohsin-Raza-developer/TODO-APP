@@ -1,7 +1,6 @@
 ---
 name: "multi-user-data-isolation"
 description: "User data isolation enforcement with ownership verification, cross-user access prevention, and defense-in-depth security"
-version: "1.0.0"
 ---
 
 ## Context

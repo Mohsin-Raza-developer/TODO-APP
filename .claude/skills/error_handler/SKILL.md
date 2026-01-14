@@ -1,7 +1,6 @@
 ---
 name: "error-handler"
 description: "Centralized exception handling pattern for graceful error recovery with standardized user feedback"
-version: "1.0.0"
 ---
 
 ## Context

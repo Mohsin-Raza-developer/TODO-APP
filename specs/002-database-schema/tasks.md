@@ -293,10 +293,10 @@ psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM tasks WHERE user_id = 'test
 ### Tasks
 
 - [x] T048 [P] Update backend/README.md with database setup instructions (Neon provisioning, Alembic initialization, migration application)
-- [ ] T049 [P] Create backend/docs/database-queries.md with example SQL queries (create user, create task, get user tasks, CASCADE deletion)
-- [ ] T050 [P] Document environment variables in backend/.env.example with descriptions (DATABASE_URL format, BETTER_AUTH_SECRET generation)
-- [ ] T051 Create backend/scripts/seed_database.py for development data seeding (2 test users, 10 tasks)
-- [ ] T052 Run final verification: `alembic current`, `pytest tests/`, `psql $DATABASE_URL -c "\dt"`
+- [x] T049 [P] Create backend/docs/database-queries.md with example SQL queries (create user, create task, get user tasks, CASCADE deletion)
+- [x] T050 [P] Document environment variables in backend/.env.example with descriptions (DATABASE_URL format, BETTER_AUTH_SECRET generation)
+- [x] T051 Create backend/scripts/seed_database.py for development data seeding (2 test users, 10 tasks)
+- [x] T052 Run final verification: `alembic current`, `pytest tests/`, `psql $DATABASE_URL -c "\dt"`
 
 **Acceptance Criteria**:
 - [x] backend/README.md includes complete database setup instructions

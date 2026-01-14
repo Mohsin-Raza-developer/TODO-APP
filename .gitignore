@@ -12,3 +12,16 @@ __init__.py
 # Environment variables (contains secrets)
 backend/.env
 .env
+
+# Roman Urdu documentation (local reference only)
+*_roman_urdu.md
+*-roman-urdu.md
+*_romun_urdu.md
+*-romun-urdu.md
+
+# Miscellaneous local files
+skills-format.png
+Hackathon*.md
+
+# Pip install artifacts (erroneous files)
+backend/=*
