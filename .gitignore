@@ -1,9 +1,23 @@
-__pycache__
-.mypy_cache
-.ruff_cache
-.venv
-guide
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+dist/
+build/
+*.egg-info/
+*.egg
+
 .python-version
+guide
 spec-romun-urdu.md
 test_performance.py
 plan-romun-urdu.md
@@ -12,6 +26,8 @@ __init__.py
 # Environment variables (contains secrets)
 backend/.env
 .env
+*.env
+!.env.example
 
 # Roman Urdu documentation (local reference only)
 *_roman_urdu.md
@@ -25,3 +41,23 @@ Hackathon*.md
 
 # Pip install artifacts (erroneous files)
 backend/=*
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover

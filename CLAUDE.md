@@ -212,6 +212,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.13+ + SQLModel 0.0.14+, Alembic 1.13+, psycopg2-binary 2.9+ (PostgreSQL adapter), python-dotenv 1.0+ (environment variables) (002-database-schema)
 - Neon Serverless PostgreSQL (cloud-hosted, auto-scaling) (002-database-schema)
+- Python 3.13+ + FastAPI, SQLModel, PyJWT, Uvicorn, python-dotenv, pytest (003-rest-api)
+- Neon Serverless PostgreSQL (inherited from feature 002-database-schema) (003-rest-api)
 
 ## Recent Changes
 - 002-database-schema: Added Python 3.13+ + SQLModel 0.0.14+, Alembic 1.13+, psycopg2-binary 2.9+ (PostgreSQL adapter), python-dotenv 1.0+ (environment variables)

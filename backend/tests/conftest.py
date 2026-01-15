@@ -16,6 +16,7 @@ import os
 import sys
 from pathlib import Path
 import pytest
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel
@@ -28,6 +29,9 @@ from models import User, Task
 
 # Load environment variables
 load_dotenv()
+
+# Register REST API fixtures
+pytest_plugins = ["tests.test_rest_api_conftest"]
 
 
 @pytest.fixture(scope="session")
@@ -196,3 +200,132 @@ def cleanup_test_data(test_engine):
 
     # Cleanup after tests
     cleanup()
+
+
+# ==============================================================================
+# REST API Test Fixtures (Phase III)
+# ==============================================================================
+
+from fastapi.testclient import TestClient
+from sqlmodel.pool import StaticPool
+from jose import jwt
+
+# Import REST API components
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from main import app
+from database import get_session
+from config import settings
+
+
+@pytest.fixture(name="api_test_engine")
+def api_test_engine_fixture(test_engine):
+    """
+    Use PostgreSQL test engine for API testing.
+
+    Reuses the same Neon PostgreSQL database as schema tests.
+    Tests use transactional rollback for isolation.
+    """
+    # Reuse the PostgreSQL test_engine fixture
+    return test_engine
+
+
+@pytest.fixture(name="api_test_session")
+def api_test_session_fixture(api_test_engine):
+    """
+    Create test database session with transactional rollback for API tests.
+    """
+    connection = api_test_engine.connect()
+    transaction = connection.begin()
+    test_session = Session(bind=connection)
+
+    yield test_session
+
+    test_session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture(name="api_client")
+def api_client_fixture(api_test_session: Session):
+    """
+    Create FastAPI TestClient with test database session.
+
+    Also seeds test users required by auth_headers fixtures.
+    """
+    # Import models
+    from models import User
+
+    # Seed test users for auth_headers fixtures
+    from datetime import datetime
+    now = datetime.utcnow()
+    test_users = [
+        User(id="test_user_123", email="test1@example.com", name="Test User 1", created_at=now),
+        User(id="test_user_456", email="test2@example.com", name="Test User 2", created_at=now),
+    ]
+    for user in test_users:
+        api_test_session.add(user)
+    api_test_session.commit()
+
+    def get_api_test_session_override():
+        return api_test_session
+
+    app.dependency_overrides[get_session] = get_api_test_session_override
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="auth_headers")
+def auth_headers_fixture():
+    """
+    Generate valid JWT authentication headers for testing.
+    """
+    payload = {
+        "userId": "test_user_123",
+        "exp": datetime.utcnow() + timedelta(hours=1),
+        "iat": datetime.utcnow(),
+    }
+    token = jwt.encode(payload, settings.better_auth_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(name="auth_headers_user2")
+def auth_headers_user2_fixture():
+    """
+    Generate valid JWT authentication headers for second test user.
+    """
+    payload = {
+        "userId": "test_user_456",
+        "exp": datetime.utcnow() + timedelta(hours=1),
+        "iat": datetime.utcnow(),
+    }
+    token = jwt.encode(payload, settings.better_auth_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(name="expired_auth_headers")
+def expired_auth_headers_fixture():
+    """
+    Generate expired JWT authentication headers for testing.
+    """
+    payload = {
+        "userId": "test_user_123",
+        "exp": datetime.utcnow() - timedelta(hours=1),
+        "iat": datetime.utcnow() - timedelta(hours=2),
+    }
+    token = jwt.encode(payload, settings.better_auth_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(name="invalid_auth_headers")
+def invalid_auth_headers_fixture():
+    """
+    Generate invalid JWT authentication headers for testing.
+    """
+    payload = {
+        "userId": "test_user_123",
+        "exp": datetime.utcnow() + timedelta(hours=1),
+        "iat": datetime.utcnow(),
+    }
+    token = jwt.encode(payload, "wrong_secret", algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}

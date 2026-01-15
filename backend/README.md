@@ -1,8 +1,10 @@
-# Backend: Todo Application Database Schema
+# Backend: Todo Application REST API
 
-**Phase II Multi-User Todo Application Backend**
+**Multi-User Todo Application Backend with REST API**
 
-This directory contains the database schema implementation for a multi-user todo application using Neon Serverless PostgreSQL, SQLModel ORM, and Alembic migrations.
+This directory contains the complete backend implementation including:
+- **Phase II**: Database schema with Neon PostgreSQL, SQLModel ORM, and Alembic migrations
+- **Phase III**: REST API with FastAPI, JWT authentication, and comprehensive CRUD operations
 
 ## Table of Contents
 
@@ -587,3 +589,337 @@ For issues or questions:
 - Principle III: Persistent Relational State (PostgreSQL, SQLModel, Alembic)
 - Principle VI: Reusable Intelligence (Database Schema Architect, Multi-User Data Isolation)
 - Principle VII: Stateless Security (user_id foreign keys, CASCADE deletion)
+
+---
+
+# Phase III: REST API Implementation
+
+## REST API Features
+
+- ✅ Complete CRUD operations for todos (Create, Read, Update, Delete, Toggle)
+- ✅ JWT authentication with Better Auth integration
+- ✅ User ownership verification (403 forbidden for user_id mismatch)
+- ✅ ID enumeration prevention (404 for cross-user access, not 403)
+- ✅ Input validation with Pydantic schemas
+- ✅ Automatic OpenAPI documentation (Swagger UI + ReDoc)
+- ✅ Comprehensive test suite (pytest + httpx TestClient)
+- ✅ Logging for all operations
+- ✅ Type safety (mypy strict mode)
+- ✅ Code quality (ruff linter/formatter)
+
+## Quick Start - REST API
+
+### Start the API Server
+
+```bash
+cd backend/
+
+# Development server with auto-reload
+uvicorn main:app --reload --port 8000
+
+# Server starts at http://localhost:8000
+# Swagger UI: http://localhost:8000/docs
+# ReDoc: http://localhost:8000/redoc
+```
+
+### Access Interactive API Documentation
+
+FastAPI automatically generates interactive API documentation:
+
+- **Swagger UI**: http://localhost:8000/docs (try endpoints in browser)
+- **ReDoc**: http://localhost:8000/redoc (clean documentation view)
+- **OpenAPI Schema**: http://localhost:8000/openapi.json (machine-readable)
+
+## API Endpoints
+
+All endpoints require JWT authentication via `Authorization: Bearer <token>` header.
+
+### Task Management
+
+| Method | Endpoint | Description | Status |
+|--------|----------|-------------|--------|
+| `POST` | `/api/{user_id}/tasks` | Create new task | 201 Created |
+| `GET` | `/api/{user_id}/tasks` | List all tasks (optional `?status=all\|pending\|completed`) | 200 OK |
+| `GET` | `/api/{user_id}/tasks/{id}` | Get single task by ID | 200 OK |
+| `PUT` | `/api/{user_id}/tasks/{id}` | Update task title/description | 200 OK |
+| `PATCH` | `/api/{user_id}/tasks/{id}/complete` | Toggle completion status | 200 OK |
+| `DELETE` | `/api/{user_id}/tasks/{id}` | Delete task permanently | 204 No Content |
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/` | API health check |
+
+## Example API Requests
+
+### 1. Create Task
+
+```bash
+# Generate JWT token (use your BETTER_AUTH_SECRET)
+export TOKEN=$(python3 -c "from jose import jwt; from datetime import datetime, timedelta; print(jwt.encode({'userId': 'alice', 'exp': datetime.utcnow() + timedelta(hours=1), 'iat': datetime.utcnow()}, 'your-secret-here', algorithm='HS256'))")
+
+# Create task
+curl -X POST http://localhost:8000/api/alice/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy groceries", "description": "Milk, eggs, bread"}'
+
+# Response: 201 Created
+{
+  "id": 1,
+  "user_id": "alice",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "created_at": "2026-01-14T12:00:00Z",
+  "updated_at": "2026-01-14T12:00:00Z"
+}
+```
+
+### 2. List Tasks
+
+```bash
+# List all tasks
+curl http://localhost:8000/api/alice/tasks \
+  -H "Authorization: Bearer $TOKEN"
+
+# List only pending tasks
+curl "http://localhost:8000/api/alice/tasks?status=pending" \
+  -H "Authorization: Bearer $TOKEN"
+
+# List only completed tasks
+curl "http://localhost:8000/api/alice/tasks?status=completed" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 3. Get Single Task
+
+```bash
+curl http://localhost:8000/api/alice/tasks/1 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 4. Update Task
+
+```bash
+# Update both title and description
+curl -X PUT http://localhost:8000/api/alice/tasks/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Updated title", "description": "Updated description"}'
+
+# Update only title (partial update)
+curl -X PUT http://localhost:8000/api/alice/tasks/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "New title"}'
+```
+
+### 5. Toggle Completion
+
+```bash
+# First toggle: pending → completed
+curl -X PATCH http://localhost:8000/api/alice/tasks/1/complete \
+  -H "Authorization: Bearer $TOKEN"
+
+# Second toggle: completed → pending
+curl -X PATCH http://localhost:8000/api/alice/tasks/1/complete \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 6. Delete Task
+
+```bash
+curl -X DELETE http://localhost:8000/api/alice/tasks/1 \
+  -H "Authorization: Bearer $TOKEN"
+
+# Response: 204 No Content (empty body)
+```
+
+## Authentication & Security
+
+### JWT Token Format
+
+This API uses Better Auth JWT tokens with the following structure:
+
+```json
+{
+  "userId": "alice",
+  "exp": 1737722000,
+  "iat": 1737718400
+}
+```
+
+**Required Claims**:
+- `userId`: User identifier (must match `user_id` in URL)
+- `exp`: Expiration timestamp (Unix epoch)
+- `iat`: Issued at timestamp (Unix epoch)
+
+### Security Features
+
+1. **JWT Verification**: All endpoints verify token signature using `BETTER_AUTH_SECRET`
+2. **User Ownership**: URL `user_id` must match JWT `userId` claim (else 403)
+3. **Data Isolation**: Database queries filter by `user_id` (users only see their own data)
+4. **ID Enumeration Prevention**: Cross-user access returns 404 (not 403) per AD-006
+
+### Error Responses
+
+| Status | Error Type | Description |
+|--------|------------|-------------|
+| 400 | `validation_error` | Invalid request body (empty title, too long, etc.) |
+| 401 | `unauthorized` | Missing/invalid/expired JWT token |
+| 403 | `forbidden` | Valid token but `user_id` mismatch |
+| 404 | `not_found` | Task doesn't exist OR cross-user access (prevents ID enumeration) |
+| 500 | `internal_server_error` | Unexpected server error |
+
+**Example Error Response**:
+```json
+{
+  "error": "unauthorized",
+  "message": "Could not validate credentials"
+}
+```
+
+## Testing REST API
+
+### Run All REST API Tests
+
+```bash
+cd backend/
+
+# Run all REST API tests
+pytest tests/test_api_auth.py tests/test_api_tasks.py -v
+
+# Run with coverage
+pytest tests/test_api_auth.py tests/test_api_tasks.py --cov=api --cov=core --cov-report=html
+```
+
+### Test Organization
+
+- **`test_api_auth.py`**: Authentication tests (13 tests)
+  - Missing token → 401
+  - Invalid token (wrong signature) → 401
+  - Expired token → 401
+  - User ID mismatch → 403
+  - Malformed token → 401
+  - Cross-user access (all endpoints) → 403
+
+- **`test_api_tasks.py`**: Endpoint tests (30+ tests covering all 6 user stories)
+  - User Story 1: Create Todo (5 tests)
+  - User Story 2: List Todos (5 tests)
+  - User Story 3: Get Single Todo (3 tests)
+  - User Story 4: Update Todo (5 tests)
+  - User Story 5: Toggle Completion (3 tests)
+  - User Story 6: Delete Todo (4 tests)
+
+### Manual Testing with Swagger UI
+
+1. Start server: `uvicorn main:app --reload`
+2. Open http://localhost:8000/docs
+3. Click "Authorize" button
+4. Enter: `Bearer <your-jwt-token>`
+5. Try endpoints interactively
+
+## Project Structure (Phase III Additions)
+
+```
+backend/
+├── api/
+│   ├── __init__.py          # Router exports
+│   ├── deps.py              # JWT dependencies (verify_jwt_token, verify_user_ownership)
+│   └── tasks.py             # Task CRUD endpoints (6 endpoints)
+├── core/
+│   └── security.py          # JWT decode utilities
+├── schemas/
+│   ├── error.py             # ErrorResponse schema
+│   └── task.py              # TaskCreate, TaskUpdate, TaskResponse schemas
+├── tests/
+│   ├── test_rest_api_conftest.py  # REST API test fixtures
+│   ├── test_api_auth.py     # Authentication tests
+│   └── test_api_tasks.py    # Endpoint tests (all CRUD)
+├── config.py                # Settings (DATABASE_URL, BETTER_AUTH_SECRET, FRONTEND_URL)
+├── database.py              # Database session dependency
+├── main.py                  # FastAPI app with CORS + error handlers
+└── requirements.txt         # Dependencies (FastAPI, PyJWT, httpx, pytest-cov)
+```
+
+## Logging
+
+All endpoint operations are logged for monitoring and debugging:
+
+```python
+# Example log output
+INFO:api.tasks:Created task 1 for user alice: 'Buy groceries'
+INFO:api.tasks:Listed 3 tasks for user alice (filter=all)
+INFO:api.tasks:Retrieved task 1 for user alice
+INFO:api.tasks:Updated task 1 for user alice
+INFO:api.tasks:Toggled task 1 completion to True for user alice
+INFO:api.tasks:Deleted task 1 for user alice
+WARNING:api.tasks:Task 99 not found for user alice
+```
+
+## Troubleshooting REST API
+
+### "401 Unauthorized" on valid token
+
+**Solutions**:
+1. Verify `BETTER_AUTH_SECRET` in `.env` matches frontend
+2. Check token expiration (default 1 hour)
+3. Ensure `Authorization: Bearer <token>` header format (note the space)
+4. Verify token was signed with correct secret (not "wrong_secret")
+
+### "403 Forbidden" on own resources
+
+**Solution**: URL `user_id` must match JWT `userId` claim exactly.
+
+```bash
+# JWT has userId="alice"
+# ✓ CORRECT: /api/alice/tasks
+# ✗ WRONG:   /api/bob/tasks (returns 403)
+```
+
+### "404 Not Found" for existing task
+
+**Possible causes**:
+1. Task truly doesn't exist
+2. Task belongs to another user (returns 404 to prevent ID enumeration per AD-006)
+
+```bash
+# User alice creates task with ID 1
+# User bob tries to access it → 404 (not 403)
+# This prevents bob from knowing task 1 exists
+```
+
+### CORS errors from frontend
+
+**Solution**: Add frontend URL to CORS middleware in `main.py`:
+
+```python
+origins = [
+    "http://localhost:3000",  # Next.js dev server
+    "https://your-app.vercel.app",  # Production frontend
+]
+```
+
+### "422 Unprocessable Entity" on valid data
+
+**Common causes**:
+- Empty title (required, 1-200 chars)
+- Title too long (>200 chars)
+- Description too long (>1000 chars)
+
+Check response body for Pydantic validation details.
+
+## Next Steps (Phase IV)
+
+1. **Frontend Integration**: Connect Next.js app with Better Auth
+2. **Performance Testing**: Load test with 100 concurrent users
+3. **Deployment**: Docker containerization + cloud hosting
+4. **Monitoring**: Add structured logging + error tracking
+
+For detailed specifications:
+- `specs/003-rest-api/spec.md` - Feature requirements
+- `specs/003-rest-api/plan.md` - Technical architecture
+- `specs/003-rest-api/contracts/` - API contracts + OpenAPI schema
+- `specs/003-rest-api/quickstart.md` - Quick start guide
