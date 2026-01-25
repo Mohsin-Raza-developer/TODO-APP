@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Test</title>
+</head>
+<body>
+    <h1>Theme Toggle Test</h1>
+    <p>Open browser console (F12) and run:</p>
+    <pre>localStorage.setItem('theme', 'light')</pre>
+    <p>Then refresh the page: http://localhost:3001</p>
+
+    <p>Or run:</p>
+    <pre>localStorage.setItem('theme', 'dark')</pre>
+
+    <p>Current theme:</p>
+    <pre id="current"></pre>
+
+    <script>
+        document.getElementById('current').textContent = localStorage.getItem('theme') || 'not set';
+    </script>
+</body>
+</html>

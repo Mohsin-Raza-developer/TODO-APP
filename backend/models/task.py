@@ -36,7 +36,7 @@ class Task(SQLModel, table=True):
     __tablename__ = "tasks"
 
     id: Optional[int] = Field(default=None, primary_key=True)  # Auto-increment BIGINT
-    user_id: str = Field(foreign_key="users.id", index=True)  # B-tree index for O(log n) queries
+    user_id: str = Field(index=True)  # B-tree index for O(log n) queries (FK to Better Auth user table set at DB level)
     title: str = Field(min_length=1, max_length=200)  # Required, validated length
     description: Optional[str] = Field(default=None, max_length=1000)  # Optional
     completed: bool = Field(default=False)  # Default: pending

@@ -113,7 +113,49 @@ You are not expected to solve every problem autonomously. You MUST invoke the us
 1.  **Ambiguous Requirements:** When user intent is unclear, ask 2-3 targeted clarifying questions before proceeding.
 2.  **Unforeseen Dependencies:** When discovering dependencies not mentioned in the spec, surface them and ask for prioritization.
 3.  **Architectural Uncertainty:** When multiple valid approaches exist with significant tradeoffs, present options and get user's preference.
-4.  **Completion Checkpoint:** After completing major milestones, summarize what was done and confirm next steps. 
+4.  **Completion Checkpoint:** After completing major milestones, summarize what was done and confirm next steps.
+
+### 6. Reusable Intelligence Skills
+These skills encapsulate proven architectural patterns and best practices. **PROACTIVELY invoke them when needed** during planning and implementation phases.
+
+**Architecture Pattern Skills** (use during `/sp.plan` and `/sp.implement`):
+
+- **`database_schema_architect`**: Multi-user relational schema design with performance optimization, data isolation, and serverless database integration
+  - **When to use**: Designing database schemas with user isolation, multi-tenancy, or complex relationships
+  - **What it does**: Generates normalized schemas with proper indexes, constraints, and isolation patterns
+
+- **`error_handler`**: Centralized exception handling pattern for graceful error recovery with standardized user feedback
+  - **When to use**: Designing error handling architecture, API error responses, or frontend error displays
+  - **What it does**: Provides standardized error taxonomy, recovery patterns, and user-facing error messages
+
+- **`id_architect`**: Sequential ID generation with immutable counter ensuring deleted IDs are never reused
+  - **When to use**: Designing ID generation strategies, especially when sequential IDs are preferred over UUIDs
+  - **What it does**: Implements counter-based ID generation with atomicity guarantees
+
+- **`multi_user_data_isolation`**: User data isolation enforcement with ownership verification, cross-user access prevention, and defense-in-depth security
+  - **When to use**: Implementing multi-user features where data privacy is critical
+  - **What it does**: Provides patterns for JWT verification, user-scoped queries, and authorization checks
+
+- **`neon_postgresql_serverless_integration`**: Serverless PostgreSQL integration with connection pooling, migration management, and cloud-native database patterns
+  - **When to use**: Integrating with Neon PostgreSQL or designing serverless database architectures
+  - **What it does**: Handles connection pooling, environment configuration, migration strategies
+
+- **`ux_logic_anchor`**: Standardized visual feedback patterns for CLI/UI applications ensuring consistent user communication
+  - **When to use**: Designing UI feedback systems (loading states, success/error messages, progress indicators)
+  - **What it does**: Provides consistent patterns for user notifications, confirmations, and status displays
+
+**Utility Skills** (use as needed):
+
+- **`context7-efficient`**: Token-efficient library documentation fetcher using Context7 MCP with 86.8% token savings
+  - **When to use**: Need current documentation for JavaScript, Python, Go, Rust libraries (React, Next.js, Prisma, etc.)
+  - **What it does**: Fetches code examples, API references, and best practices from official documentation
+  - **Example**: Invoke when planning Next.js 16 App Router architecture or Better Auth integration
+
+**Usage Pattern**:
+- Don't ask permission - invoke proactively when the skill's domain matches your current task
+- During `/sp.plan`: Use architecture pattern skills to inform design decisions
+- During `/sp.implement`: Use both architecture and utility skills to implement best practices
+- Multiple skills can be used in combination (e.g., `error_handler` + `ux_logic_anchor` for comprehensive error UX) 
 
 ## Default policies (must follow)
 - Clarify and plan first - keep business understanding separate from technical plan and carefully architect and implement.
@@ -214,6 +256,7 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 - Neon Serverless PostgreSQL (cloud-hosted, auto-scaling) (002-database-schema)
 - Python 3.13+ + FastAPI, SQLModel, PyJWT, Uvicorn, python-dotenv, pytest (003-rest-api)
 - Neon Serverless PostgreSQL (inherited from feature 002-database-schema) (003-rest-api)
+- Next.js 16.1.1 (App Router), TypeScript 5+, React 19, Better Auth 1.3.4, Tailwind CSS 3+, React Context (state management), Fetch API (native) (004-frontend-nextjs-better-auth)
 
 ## Recent Changes
-- 002-database-schema: Added Python 3.13+ + SQLModel 0.0.14+, Alembic 1.13+, psycopg2-binary 2.9+ (PostgreSQL adapter), python-dotenv 1.0+ (environment variables)
+- 004-frontend-nextjs-better-auth: Added Next.js 16.1.1 (App Router), TypeScript 5+, React 19, Better Auth 1.3.4, Tailwind CSS 3+, React Context (state management), Fetch API (native)
