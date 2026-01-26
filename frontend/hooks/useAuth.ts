@@ -55,7 +55,8 @@ export function useAuth() {
       }
 
       success("Signed in successfully!");
-      router.push("/dashboard");
+      // Force full reload to ensure cookies are sent to server middleware
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Sign in error details:", err);
       const message = err instanceof Error ? err.message : "Failed to sign in";
@@ -89,7 +90,8 @@ export function useAuth() {
       }
 
       success("Account created successfully!");
-      router.push("/dashboard");
+      // Force full reload to ensure cookies are sent to server middleware
+      window.location.href = "/dashboard";
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create account";
       showError(message);

@@ -61,3 +61,6 @@ htmlcov/
 .coverage.*
 coverage.xml
 *.cover
+
+# Private Documentation
+backend/API_TESTING_GUIDE.md
