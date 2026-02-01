@@ -3,32 +3,37 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.1.0 → 2.0.0
-Type: MAJOR (Transition to Full-Stack Web Architecture)
+Version Change: 2.0.0 → 2.1.0
+Type: MINOR (Added MCP Server Integration Architecture)
 
 Modified Principles:
-- REPLACED: III. In-Memory State Management → III. Persistent Relational State
-- ADDED: VII. Stateless Security (JWT Authentication)
+- NONE (All existing principles remain intact)
 
-Modified Sections:
-- Technology Stack: Complete overhaul for web architecture
-  - Frontend: Next.js 16+ (App Router), Tailwind CSS
-  - Backend: Python 3.13+, FastAPI
-  - Database: Neon Serverless PostgreSQL with SQLModel ORM
-  - Auth: Better Auth with JWT
-- Success Criteria: Added Phase II criteria for web application
-- Title: Updated from "Python Console App" to "Full-Stack Web Application"
+Added Sections:
+- Technology Stack: Added MCP Integration subsection
+  - MCP SDK (Official Python SDK for Model Context Protocol)
+  - MCP servers wrap backend API endpoints as tools for AI agents
+  - HTTP client pattern (httpx/aiohttp) for API integration
+
+- Success Criteria: Added Phase III criteria for AI-powered chatbot
+  - Phase IIIA: Standalone MCP Server with 5 task management tools
+  - Phase IIIB: Chat endpoint with Gemini agent integration
+  - Phase IIIC: Frontend ChatKit widget for conversational interface
+
+New Architectural Pattern:
+- MCP servers MUST delegate to existing backend API (no direct database access)
+- Try-except error handling for HTTP client operations
+- Backend API responses MUST be transformed into MCP tool responses
 
 Templates Requiring Updates:
-- ⚠ .specify/templates/plan-template.md (add database schema, API design, auth flow sections)
-- ⚠ .specify/templates/spec-template.md (add API endpoints, auth requirements, UI wireframes)
-- ⚠ .specify/templates/tasks-template.md (add frontend, backend, database, auth task categories)
+- ✅ .specify/templates/spec-template.md (HTTP client architecture patterns)
+- ⚠ .specify/templates/plan-template.md (add MCP server design sections)
+- ⚠ .specify/templates/tasks-template.md (add MCP tool implementation task categories)
 
 Follow-up TODOs:
-- Review Agent Skills (id_architect, ux_logic_anchor, error_handler) for web context applicability
-- Create database migration strategy from in-memory Phase I data
-- Define API versioning and endpoint naming conventions
-- Establish JWT token lifecycle and refresh policies
+- Establish MCP tool naming conventions (snake_case aligned with backend endpoints)
+- Define error response transformation patterns (HTTPException → MCP error format)
+- Document environment variable requirements (BACKEND_API_URL for MCP servers)
 -->
 
 ## Core Principles
@@ -144,6 +149,7 @@ Authorization Requirements:
 - **Styling**: Tailwind CSS
 - **Language**: TypeScript 5+
 - **State Management**: React Context or Zustand (as needed)
+- **Chatbot UI**: OpenAI ChatKit (Phase III)
 
 ### Backend
 - **Language**: Python 3.13+
@@ -156,6 +162,15 @@ Authorization Requirements:
 - **Provider**: Better Auth
 - **Mechanism**: JWT tokens with `BETTER_AUTH_SECRET` signature verification
 - **Token Storage**: HTTP-only cookies (frontend) + Authorization header (API)
+
+### MCP Integration (Phase III)
+- **Protocol**: Model Context Protocol (MCP) for AI agent tool calling
+- **SDK**: Official MCP Python SDK
+- **Architecture**: MCP servers wrap backend REST API endpoints (no direct database access)
+- **HTTP Client**: httpx or aiohttp for making API requests
+- **AI Model**: Gemini 2.5 Flash via OpenAI-compatible API (configurable)
+- **Error Handling**: Try-except blocks for all HTTP operations with backend API
+- **Environment**: BACKEND_API_URL for API base URL configuration
 
 ### Development Tools
 - **Backend**:
@@ -216,7 +231,7 @@ Phase I is considered complete when ALL of the following are met:
 5. **Documentation**: Specification, plan, tasks complete and approved
 6. **Skill Extraction**: 3 Agent Skills formalized (id_architect, ux_logic_anchor, error_handler)
 
-### Phase II (In Progress)
+### Phase II (COMPLETE)
 Phase II is considered complete when ALL of the following are met:
 
 1. **Secure REST API**: Full CRUD functionality with JWT authentication
@@ -253,6 +268,39 @@ Phase II is considered complete when ALL of the following are met:
    - Integration tests for database operations
    - Authentication/authorization tests (valid/invalid tokens, ownership checks)
 
+### Phase III (In Progress)
+Phase III is considered complete when ALL of the following are met:
+
+**Phase IIIA: Standalone MCP Server**
+1. **MCP Tools Implementation**: 5 task management tools callable by AI agents
+   - add_task, list_tasks, complete_task, delete_task, update_task
+   - All tools delegate to existing backend REST API endpoints
+   - HTTP client with try-except error handling for all API calls
+   - Error responses transformed from HTTPException to MCP format
+
+2. **API Integration**: MCP server wraps backend API (no direct database access)
+   - Tools make HTTP requests to http://localhost:8000/api/{user_id}/* endpoints
+   - Backend API handles authentication, validation, and database persistence
+   - MCP server location: /mnt/d/todo-mcp-server/ (separate from main app)
+   - UV package manager for Python dependency management
+
+3. **Independent Testing**: MCP server testable with backend API running
+   - Complete workflow: create → list → complete → delete executable via MCP tools
+   - User data isolation enforced (backend API responsibility)
+   - All error scenarios handled gracefully (connection failures, 4xx/5xx responses)
+
+**Phase IIIB: Chat Endpoint with AI Agent** (Pending Phase IIIA completion)
+1. **Chat API**: Stateless chat endpoint integrated with Gemini agent
+   - POST /api/{user_id}/chat endpoint
+   - Conversation/message persistence in database
+   - Agent calls MCP tools based on natural language input
+
+**Phase IIIC: Frontend ChatKit Widget** (Pending Phase IIIB completion)
+1. **Conversational Interface**: WhatsApp-style floating chat button
+   - OpenAI ChatKit UI component in bottom-right corner
+   - Integrated with existing Next.js frontend
+   - Natural language task management via chat
+
 ## Governance
 
 **Authority**: This constitution supersedes all other development practices and preferences for this project.
@@ -273,4 +321,4 @@ Phase II is considered complete when ALL of the following are met:
 
 **Review Schedule**: Constitution MUST be reviewed at phase boundaries (Phase I → Phase II transition, etc.), including the audit of extracted Skills to ensure they remain relevant and are being utilized.
 
-**Version**: 2.0.0 | **Ratified**: 2026-01-07 | **Last Amended**: 2026-01-11
+**Version**: 2.1.0 | **Ratified**: 2026-01-07 | **Last Amended**: 2026-01-26
