@@ -22,7 +22,6 @@ export interface SessionData {
  */
 export function getUserIdFromSession(request: NextRequest): { userId: string | null; error: string | null } {
   // Get session cookies
-  console.log("Cookies available:", request.cookies.getAll().map(c => c.name));
   const sessionToken = request.cookies.get("better-auth.session_token")?.value;
   const sessionData = request.cookies.get("better-auth.session_data")?.value;
 
@@ -46,9 +45,7 @@ export function getUserIdFromSession(request: NextRequest): { userId: string | n
       decodedSessionData = decodeURIComponent(sessionData);
     }
 
-    console.log("Decoded session data:", decodedSessionData);
     const sessionObj: any = JSON.parse(decodedSessionData);
-    console.log("Parsed session object:", sessionObj);
 
     // Extract user ID (Better Auth has nested structure)
     // Try multiple possible locations in the session object
@@ -60,14 +57,11 @@ export function getUserIdFromSession(request: NextRequest): { userId: string | n
       sessionObj.id;                            // id
 
     if (!userId) {
-      console.error("No user ID found in session. Session object:", sessionObj);
       return { userId: null, error: "No user ID in session data" };
     }
 
-    console.log("Extracted user ID:", userId);
     return { userId, error: null };
   } catch (error) {
-    console.error("Failed to parse session data:", error);
     return { userId: null, error: "Invalid session data format" };
   }
 }

@@ -12,24 +12,18 @@ import { getUserIdFromSession } from "@/lib/auth-helper";
 const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function GET(request: NextRequest) {
-  console.log("=== GET /api/todos called ===");
   try {
     const { userId, error } = getUserIdFromSession(request);
 
     if (error || !userId) {
-      console.log("Auth error:", error);
       return NextResponse.json(
         { error: "unauthorized", message: error || "Not authenticated" },
         { status: 401 }
       );
     }
 
-    console.log("User ID:", userId);
-
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status") || "all";
-
-    console.log(`Fetching todos for user ${userId} with status ${status}`);
 
     // Get session token for backend authorization
     // Better Auth session_token format: "token.signature"
@@ -51,7 +45,6 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`FastAPI error (${response.status}):`, errorText);
       try {
         const errorData = JSON.parse(errorText);
         return NextResponse.json(errorData, { status: response.status });
@@ -66,7 +59,6 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Todos API error:", error);
     return NextResponse.json(
       {
         error: "internal_server_error",
@@ -79,22 +71,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("=== POST /api/todos called ===");
   try {
     const { userId, error } = getUserIdFromSession(request);
 
     if (error || !userId) {
-      console.log("Auth error:", error);
       return NextResponse.json(
         { error: "unauthorized", message: error || "Not authenticated" },
         { status: 401 }
       );
     }
 
-    console.log("User ID:", userId);
-
     const body = await request.json();
-    console.log(`Creating todo for user ${userId}:`, body);
 
     // Get session token for backend authorization
     // Better Auth session_token format: "token.signature"
@@ -114,7 +101,6 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`FastAPI error (${response.status}):`, errorText);
       try {
         const errorData = JSON.parse(errorText);
         return NextResponse.json(errorData, { status: response.status });
@@ -129,7 +115,6 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error("Create todo error:", error);
     return NextResponse.json(
       {
         error: "internal_server_error",

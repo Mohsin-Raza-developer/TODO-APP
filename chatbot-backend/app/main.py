@@ -16,6 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from chatkit.server import StreamingResult
 from sqlalchemy.exc import SQLAlchemyError
 from httpx import HTTPStatusError
+from openai import RateLimitError
 
 from app.utils.logging import setup_logging, request_id_var
 from app.config import settings
@@ -23,7 +24,7 @@ from app.auth.jwt import verify_token
 from app.models.request_context import RequestContext
 from app.store.neon_store import NeonPostgresStore
 from app.server.chatkit_server import ChatbotServer
-from app.utils.errors import ChatbotError, AgentError, MCPError, StorageError
+from app.utils.errors import ChatbotError, AgentError, MCPError, StorageError, QuotaExceededError
 
 # Setup structured logging
 setup_logging()
@@ -42,7 +43,15 @@ async def lifespan(app: FastAPI):
     logger.info("Starting chatbot backend")
     logger.info(f"Port: {settings.port}")
     logger.info(f"MCP Server: {settings.mcp_server_url}")
-    logger.info(f"Database: {settings.database_url.split('@')[0] if '@' in settings.database_url else 'configured'}")
+    # Avoid logging credentials; only show host/db presence.
+    if settings.database_url:
+        try:
+            db_host = settings.database_url.split("@", 1)[1]
+        except Exception:
+            db_host = "configured"
+    else:
+        db_host = "configured"
+    logger.info(f"Database: {db_host}")
 
     # Validate required settings
     required = [
@@ -88,7 +97,7 @@ async def request_id_middleware(request: Request, call_next):
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js frontend
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Next.js frontend (both ports)
     allow_credentials=True,
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
@@ -144,6 +153,29 @@ async def chatkit_endpoint(
             return StreamingResponse(result, media_type="text/event-stream")
         else:
             return Response(content=result.json, media_type="application/json")
+    except RateLimitError as e:
+        # Extract retry time if available
+        error_msg = str(e)
+        retry_info = ""
+        if "retry in" in error_msg.lower():
+            try:
+                # Extract retry time from error message
+                import re
+                match = re.search(r'retry in (\d+\.?\d*)s', error_msg)
+                if match:
+                    retry_seconds = float(match.group(1))
+                    retry_minutes = int(retry_seconds / 60)
+                    if retry_minutes > 0:
+                        retry_info = f" Please try again in {retry_minutes} minutes."
+                    else:
+                        retry_info = f" Please try again in a few seconds."
+            except:
+                pass
+
+        raise QuotaExceededError(
+            message=f"AI service quota exceeded.{retry_info} If this continues, please check your API plan.",
+            details=str(e)
+        )
     except SQLAlchemyError as e:
         raise StorageError("Could not process your request due to a database issue.", details=str(e))
     except HTTPStatusError as e:
@@ -152,4 +184,3 @@ async def chatkit_endpoint(
         if "ValidationError" in str(type(e).__name__):
             raise HTTPException(status_code=400, detail=f"Invalid message format: {e}")
         raise AgentError("An unexpected error occurred while processing your request.", details=str(e))
-

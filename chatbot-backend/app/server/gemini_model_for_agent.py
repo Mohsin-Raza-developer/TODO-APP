@@ -23,3 +23,6 @@ gemini_config = RunConfig(
 
 # Use client configured with settings (no need to set key again)
 set_default_openai_client(client=external_client, use_for_tracing=True)
+# Key is already configured in external_client from settings.openai_api_key
+# set_default_openai_key(key=settings.openai_api_key, use_for_tracing=True)
+

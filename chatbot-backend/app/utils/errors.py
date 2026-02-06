@@ -146,3 +146,31 @@ class StorageError(ChatbotError):
             details: Optional technical details
         """
         super().__init__(message, status_code, details)
+
+
+class QuotaExceededError(ChatbotError):
+    """Errors related to API quota/rate limit exceeded.
+
+    Raised when:
+    - OpenAI API quota exceeded
+    - Rate limit hit
+    - Daily/monthly usage limit reached
+    - Free tier limits exceeded
+
+    Default status code: 429 (too many requests)
+    """
+
+    def __init__(
+        self,
+        message: str = "API quota exceeded. Please try again later or upgrade your plan.",
+        status_code: int = 429,
+        details: Optional[str] = None
+    ):
+        """Initialize quota exceeded error.
+
+        Args:
+            message: User-facing error message (default: friendly quota message)
+            status_code: HTTP status code (default: 429)
+            details: Optional technical details
+        """
+        super().__init__(message, status_code, details)
