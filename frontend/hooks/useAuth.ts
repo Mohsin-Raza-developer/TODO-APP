@@ -50,15 +50,22 @@ export function useAuth() {
         rememberMe: data.rememberMe,
       });
 
-      if (result.error) {
-        throw new Error(result.error.message || "Failed to sign in");
+      const resultError = (result as { error?: unknown }).error;
+      if (resultError) {
+        const message =
+          (typeof resultError === "string" && resultError) ||
+          (typeof resultError === "object" &&
+            resultError !== null &&
+            "message" in resultError &&
+            String((resultError as { message?: string }).message)) ||
+          "Invalid email or password. Please try again.";
+        throw new Error(message);
       }
 
       success("Signed in successfully!");
       // Force full reload to ensure cookies are sent to server middleware
       window.location.href = "/dashboard";
     } catch (err) {
-      console.error("Sign in error details:", err);
       const message = err instanceof Error ? err.message : "Failed to sign in";
       showError(message);
       throw err;

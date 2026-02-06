@@ -60,6 +60,8 @@ test_mcp_manually.sh
 test_chatkit_methods.sh
 generate_test_token.py
 alembic.ini
+QUOTA_ERROR_HANDLING.md
+BUGFIX_MESSAGE_OVERWRITE.md
 
 # chatbot-backend folder
 tests/

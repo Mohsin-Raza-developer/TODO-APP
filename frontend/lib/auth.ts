@@ -28,9 +28,6 @@ const sql = postgres(process.env.DATABASE_URL!, {
   keep_alive: 30, // Keep Alive every 30 seconds
 });
 
-// Test connection
-sql`SELECT 1`.then(() => console.log("Database connected successfully"))
-  .catch((err) => console.error("Database connection failed:", err));
 
 // Create Kysely instance
 const db = new Kysely({

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { ToastRenderer } from "@/components/ui/ToastRenderer";
+import { FloatingChatButton } from "@/components/ui/FloatingChatButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,14 @@ export const metadata: Metadata = {
   description: "Simple and powerful todo application with user authentication",
 };
 
+// Load ChatKit web component
+const ChatkitScript = () => (
+  <script
+    src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
+    async
+  />
+);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <ChatkitScript />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
@@ -35,6 +47,7 @@ export default function RootLayout({
           <ToastProvider>
             {children}
             <ToastRenderer />
+            <FloatingChatButton />
           </ToastProvider>
         </ThemeProvider>
       </body>

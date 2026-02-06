@@ -22,7 +22,7 @@ import { withRetry, handleAPIError, logError } from "@/lib/error-handler";
 /**
  * Backend API base URL (FastAPI server)
  */
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * API request configuration

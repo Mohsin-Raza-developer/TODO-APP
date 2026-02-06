@@ -18,12 +18,46 @@ import logging
 import json
 
 from chatkit.store import Store, NotFoundError
-from chatkit.types import ThreadMetadata, ThreadItem, UserMessageItem, AssistantMessageItem, Attachment, Page, InferenceOptions
+from chatkit.types import (
+    ThreadMetadata, ThreadItem, UserMessageItem, AssistantMessageItem,
+    Attachment, Page, InferenceOptions, AssistantMessageContent, UserMessageTextContent
+)
 
 from app.config import settings
 from app.models.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
+
+
+def _reconstruct_content(content_data: list, role: str) -> list:
+    """Reconstruct ChatKit content objects from JSON data.
+
+    Args:
+        content_data: List of content dictionaries from JSON
+        role: Message role ('user' or 'assistant')
+
+    Returns:
+        List of properly typed ChatKit content objects
+    """
+    reconstructed = []
+    for item in content_data:
+        if role == 'assistant':
+            # Reconstruct AssistantMessageContent
+            reconstructed.append(AssistantMessageContent(
+                type=item.get('type', 'output_text'),
+                text=item.get('text', ''),
+                annotations=item.get('annotations', [])
+            ))
+        elif role == 'user':
+            # Reconstruct UserMessageTextContent
+            content_type = item.get('type', 'input_text')
+            if content_type == 'input_text':
+                reconstructed.append(UserMessageTextContent(
+                    type='input_text',
+                    text=item.get('text', '')
+                ))
+            # Add more types if needed (AudioInput, etc.)
+    return reconstructed
 
 
 class NeonPostgresStore(Store[RequestContext]):
@@ -283,7 +317,10 @@ class NeonPostgresStore(Store[RequestContext]):
             items = []
             for row in messages_data:
                 # Deserialize JSON content
-                content = json.loads(row['content'])
+                content_data = json.loads(row['content'])
+
+                # Reconstruct proper ChatKit content objects
+                content = _reconstruct_content(content_data, row['role'])
 
                 if row['role'] == 'user':
                     items.append(UserMessageItem(
@@ -456,7 +493,10 @@ class NeonPostgresStore(Store[RequestContext]):
                 raise NotFoundError(f"Message {item_id} not found")
 
             # Deserialize JSON content
-            content = json.loads(row['content'])
+            content_data = json.loads(row['content'])
+
+            # Reconstruct proper ChatKit content objects
+            content = _reconstruct_content(content_data, row['role'])
 
             if row['role'] == 'user':
                 return UserMessageItem(
