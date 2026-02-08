@@ -4,6 +4,10 @@ This module provides a factory function to create Agent instances configured
 with GPT-4o-mini model, user-specific instructions, and MCP client integration.
 """
 
+import asyncio
+import logging
+from typing import Dict, Tuple
+
 from agents import Agent
 from agents.mcp import MCPServerStreamableHttp
 
@@ -14,27 +18,72 @@ from urllib.parse import urlparse
 
 # ... imports ...
 
+logger = logging.getLogger(__name__)
+
+# Global cache for MCP clients: (user_id, token) -> MCPServerStreamableHttp
+_mcp_client_cache: Dict[Tuple[str, str], MCPServerStreamableHttp] = {}
+_mcp_client_lock = asyncio.Lock()
+
+
+async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreamableHttp:
+    """
+    Get an existing connected MCP client from cache or create and connect a new one.
+    
+    Args:
+        user_id: The ID of the user.
+        token: The authentication token.
+        
+    Returns:
+        A connected MCPServerStreamableHttp instance.
+    """
+    cache_key = (user_id, token)
+    
+    async with _mcp_client_lock:
+        if cache_key in _mcp_client_cache:
+            client = _mcp_client_cache[cache_key]
+            logger.info(f"Using cached MCP client for user {user_id}")
+            return client
+
+        # Create new client
+        logger.info(f"Creating new MCP client for user {user_id}")
+        mcp_client = MCPServerStreamableHttp(
+            name="todo-mcp",
+            params={
+                "url": settings.mcp_server_url,
+                "headers": {
+                    "Authorization": token,  # Already in "Bearer <token>" format
+                },
+                "timeout": settings.mcp_timeout,
+                "http2": False,  # Force HTTP/1.1 to avoid 421 Misdirected Request on Render
+            },
+            cache_tools_list=True,  # Cache tool list for performance
+            client_session_timeout_seconds=settings.mcp_timeout,
+        )
+
+        # Connect with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                await mcp_client.connect()
+                logger.info(f"Successfully connected MCP client for user {user_id}")
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Failed to connect MCP client for user {user_id} after {max_retries} attempts: {e}")
+                    raise
+                wait_time = 2 ** attempt
+                logger.warning(f"MCP connection failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+
+        _mcp_client_cache[cache_key] = mcp_client
+        return mcp_client
+
+
 async def create_agent_for_user(user_id: str, token: str) -> Agent:
     # ... docstring ...
     
-    # Create MCP client with user's JWT token in headers
-    # This token will be forwarded to all MCP tool calls
-    mcp_client = MCPServerStreamableHttp(
-        name="todo-mcp",
-        params={
-            "url": settings.mcp_server_url,
-            "headers": {
-                "Authorization": token,  # Already in "Bearer <token>" format
-            },
-            "timeout": settings.mcp_timeout,
-            "http2": False,  # Force HTTP/1.1 to avoid 421 Misdirected Request on Render
-        },
-        cache_tools_list=True,  # Cache tool list for performance
-        client_session_timeout_seconds=settings.mcp_timeout,
-    )
-
-    # Connect MCP server before using it
-    await mcp_client.connect()
+    # Get cached or new MCP client
+    mcp_client = await get_or_create_mcp_client(user_id, token)
 
     # Create agent with MCP tools and user-specific instructions
     agent = Agent(

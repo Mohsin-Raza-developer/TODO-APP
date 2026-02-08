@@ -8,7 +8,7 @@
 export const CHATKIT_CONFIG = {
     api: {
         url: '/api/chatkit',  // Proxy to chatbot backend
-        domainKey: 'local-dev', // Req. for OpenAI domain verification
+        domainKey: process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY ?? "", // Req. for OpenAI domain verification
     },
     theme: 'dark',  // Use string instead of object for theme
     locale: 'en',
