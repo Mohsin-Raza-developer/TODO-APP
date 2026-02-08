@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", env="HOST")
     openai_timeout: int = Field(default=30, env="OPENAI_TIMEOUT")
     mcp_timeout: int = Field(default=10, env="MCP_TIMEOUT")
+    openai_tracing_api_key: str | None = Field(default=None, env="OPENAI_TRACING_API_KEY")
+
 
     model_config = {
         "env_file": ".env",
