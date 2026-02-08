@@ -21,6 +21,10 @@ class Settings(BaseSettings):
         default="http://localhost:3000/mcp",
         env="MCP_SERVER_URL"
     )
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:3001",
+        env="CORS_ORIGINS"
+    )
     port: int = Field(default=8001, env="PORT")
     host: str = Field(default="0.0.0.0", env="HOST")
     openai_timeout: int = Field(default=30, env="OPENAI_TIMEOUT")
@@ -30,6 +34,10 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8"
     }
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 # Global settings instance

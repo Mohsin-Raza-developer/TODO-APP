@@ -10,20 +10,13 @@ from agents.mcp import MCPServerStreamableHttp
 from app.config import settings
 
 
+from urllib.parse import urlparse
+
+# ... imports ...
+
 async def create_agent_for_user(user_id: str, token: str) -> Agent:
-    """Create an Agent instance configured for a specific user.
-
-    Args:
-        user_id: User identifier for personalized instructions
-        token: JWT token for MCP server authentication (format: "Bearer <token>")
-
-    Returns:
-        Agent: Configured agent instance ready for execution
-
-    Note:
-        Token is passed to MCP server in Authorization header so tools can
-        authenticate with TODO backend API.
-    """
+    # ... docstring ...
+    
     # Create MCP client with user's JWT token in headers
     # This token will be forwarded to all MCP tool calls
     mcp_client = MCPServerStreamableHttp(
@@ -31,9 +24,10 @@ async def create_agent_for_user(user_id: str, token: str) -> Agent:
         params={
             "url": settings.mcp_server_url,
             "headers": {
-                "Authorization": token  # Already in "Bearer <token>" format
+                "Authorization": token,  # Already in "Bearer <token>" format
             },
             "timeout": settings.mcp_timeout,
+            "http2": False,  # Force HTTP/1.1 to avoid 421 Misdirected Request on Render
         },
         cache_tools_list=True,  # Cache tool list for performance
         client_session_timeout_seconds=settings.mcp_timeout,
