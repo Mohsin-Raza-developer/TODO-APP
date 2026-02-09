@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Dict, Tuple
 
-from agents import Agent
+from agents import Agent,ModelSettings
 from agents.mcp import MCPServerStreamableHttp
 
 from app.config import settings
@@ -48,6 +48,7 @@ async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreama
                 "timeout": settings.mcp_timeout,
                 "http2": False, 
             },
+            cache_tools_list = True,
             cache_tools_list=True,  # Cache tool list for performance
             client_session_timeout_seconds=settings.mcp_timeout,
         ) 
@@ -88,8 +89,9 @@ You have access to todo management tools through the MCP server. Use them to hel
 - Be concise but informative
 - Use natural language
 - Be encouraging and supportive
-- Format task lists nicely with numbers or bullets
+- Format task lists nicely with numbers or bullets,
         """.strip(),
+        model_settings = ModelSettings(parallel_tool_calls=True,max_tokens=250)
         mcp_servers=[mcp_client],  # Attach MCP server with authenticated token
     )
 
