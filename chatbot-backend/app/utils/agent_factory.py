@@ -48,7 +48,6 @@ async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreama
                 "timeout": settings.mcp_timeout,
                 "http2": False, 
             },
-            cache_tools_list = True,
             cache_tools_list=True,  # Cache tool list for performance
             client_session_timeout_seconds=settings.mcp_timeout,
         ) 
