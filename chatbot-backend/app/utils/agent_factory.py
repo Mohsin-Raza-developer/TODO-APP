@@ -91,7 +91,7 @@ You have access to todo management tools through the MCP server. Use them to hel
 - Be encouraging and supportive
 - Format task lists nicely with numbers or bullets,
         """.strip(),
-        model_settings = ModelSettings(parallel_tool_calls=True,max_tokens=250)
+        model_settings = ModelSettings(parallel_tool_calls=True,max_tokens=250),
         mcp_servers=[mcp_client],  # Attach MCP server with authenticated token
     )
 
