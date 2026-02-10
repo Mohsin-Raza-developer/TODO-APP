@@ -6,14 +6,32 @@
 /* Light mode (default) */
 :root,
 .light {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fb;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --muted: #475569;
+  --muted-2: #64748b;
+  --border: #e2e8f0;
+  --accent: #0ea5e9;
+  --accent-2: #14b8a6;
+  --accent-3: #f59e0b;
+  --glow: rgba(14, 165, 233, 0.35);
 }
 
 /* Dark mode via class (manual toggle) */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0b0f1a;
+  --foreground: #e5e7eb;
+  --surface: #0f1629;
+  --surface-2: #111a31;
+  --muted: #94a3b8;
+  --muted-2: #64748b;
+  --border: #1f2a44;
+  --accent: #38bdf8;
+  --accent-2: #2dd4bf;
+  --accent-3: #fbbf24;
+  --glow: rgba(56, 189, 248, 0.35);
 }
 
 @theme inline {
@@ -21,12 +39,17 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair-display);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-playfair-display), "Playfair Display", "Times New Roman", serif;
 }
 
 /* Toast slide-in animation */
@@ -63,10 +86,171 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* 
-   FIX for ChatKit UI Blank Issue:
-   The web component defaults to 0 height if not explicitly sized.
-*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-100vh) scale(1.4);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation-name: float-up;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 8s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-30%);
+  }
+
+  100% {
+    transform: translateX(30%);
+  }
+}
+
+@keyframes glow {
+  0% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes levitate {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-levitate {
+  animation: levitate 6s ease-in-out infinite;
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2), var(--accent-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.shadow-soft {
+  box-shadow:
+    0 20px 60px -30px rgba(15, 23, 42, 0.45),
+    0 4px 18px -10px rgba(15, 23, 42, 0.25);
+}
+
+.ring-glow {
+  box-shadow: 0 0 0 1px var(--border), 0 0 40px -10px var(--glow);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent),
+    0 0 40px -10px var(--glow);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-shimmer {
+  animation: shimmer 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 6s ease-in-out infinite;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.delay-500 {
+  animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* The web component defaults to 0 height if not explicitly sized. */
 openai-chatkit {
   display: flex !important;
   flex-direction: column !important;
