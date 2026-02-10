@@ -176,13 +176,14 @@ export function FloatingChatModal({ isOpen, onClose }: FloatingChatModalProps) {
             />
 
             {/* Chat Modal */}
-            <div className={`fixed bottom-0 right-0 md:bottom-6 md:right-6 w-full md:w-[360px] h-[85vh] md:h-[520px] bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden transition-transform duration-300 ${isOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-[calc(100%+24px)]'}`}>
+            <div className={`fixed bottom-0 right-0 md:bottom-6 md:right-6 w-full md:w-[360px] h-[85vh] md:h-[520px] bg-[color:var(--surface)] rounded-t-2xl md:rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden transition-transform duration-300 ${isOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-[calc(100%+24px)]'}`}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-2xl md:rounded-t-2xl">
+                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-sky-500 via-teal-500 to-amber-400 text-white rounded-t-2xl md:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center shadow-soft">
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h7a4 4 0 010 8H10l-3 3v-3H7a4 4 0 010-8z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 4.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" />
                             </svg>
                         </div>
                         <div>

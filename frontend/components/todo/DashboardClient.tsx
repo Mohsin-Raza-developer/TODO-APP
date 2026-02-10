@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dashboard Client Component
  *
  * Client-side todo list with CRUD operations
@@ -40,7 +40,6 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
   });
   const { error: showError } = useToast();
 
-  // Calculate stats from todos
   useEffect(() => {
     setStats({
       total: todos.length,
@@ -49,20 +48,16 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
     });
   }, [todos]);
 
-  // Fetch todos on mount and when filter changes
   useEffect(() => {
     fetchTodos();
   }, [filter]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + K to open create modal
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setIsCreateModalOpen(true);
       }
-      // Escape to close modals
       if (e.key === "Escape") {
         setIsCreateModalOpen(false);
         setIsEditModalOpen(false);
@@ -88,9 +83,7 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
   async function handleToggleComplete(todoId: number) {
     try {
       const updated = await todoApi.toggleComplete(userId, todoId);
-      setTodos(
-        todos.map((t) => (t.id === todoId ? updated : t))
-      );
+      setTodos(todos.map((t) => (t.id === todoId ? updated : t)));
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to update todo");
     }
@@ -120,7 +113,6 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
     setTodos(todos.map((t) => (t.id === updatedTodo.id ? updatedTodo : t)));
   }
 
-  // Filter todos based on search query
   const filteredTodos = todos.filter((todo) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -129,184 +121,118 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
     return matchesSearch;
   });
 
-  // Calculate completion percentage
   const completionPercentage =
     stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section with Create Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {userName}! 👋
+          <h1 className="text-3xl font-semibold text-[color:var(--foreground)] mb-2">
+            Welcome back, {userName}!
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-[color:var(--muted)]">
             Here's what you need to focus on today
           </p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 group"
+          className="px-4 py-2 bg-[color:var(--accent)] text-white rounded-xl hover:translate-y-[-1px] transition-all flex items-center gap-2 group shadow-soft"
           title="Press Ctrl+K to create"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           <span>Create Todo</span>
           <span className="hidden md:inline-flex items-center gap-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-            <kbd className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">Ctrl</kbd>
+            <kbd className="px-1.5 py-0.5 bg-black/20 rounded text-xs">Ctrl</kbd>
             <span>+</span>
-            <kbd className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">K</kbd>
+            <kbd className="px-1.5 py-0.5 bg-black/20 rounded text-xs">K</kbd>
           </span>
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-blue-600">
+        <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-6 border border-[color:var(--border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Total Tasks
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.total}
-              </p>
+              <p className="text-sm text-[color:var(--muted)] mb-1">Total Tasks</p>
+              <p className="text-3xl font-semibold text-[color:var(--foreground)]">{stats.total}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-blue-600 dark:text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
+            <div className="w-12 h-12 bg-[color:var(--accent)]/15 rounded-2xl flex items-center justify-center text-[color:var(--accent)]">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-green-600">
+        <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-6 border border-[color:var(--border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Completed
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.completed}
-              </p>
+              <p className="text-sm text-[color:var(--muted)] mb-1">Completed</p>
+              <p className="text-3xl font-semibold text-[color:var(--foreground)]">{stats.completed}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-green-600 dark:text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
+            <div className="w-12 h-12 bg-[color:var(--accent-2)]/15 rounded-2xl flex items-center justify-center text-[color:var(--accent-2)]">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-yellow-600">
+        <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-6 border border-[color:var(--border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Pending
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.pending}
-              </p>
+              <p className="text-sm text-[color:var(--muted)] mb-1">Pending</p>
+              <p className="text-3xl font-semibold text-[color:var(--foreground)]">{stats.pending}</p>
             </div>
-            <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-yellow-600 dark:text-yellow-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+            <div className="w-12 h-12 bg-[color:var(--accent-3)]/15 rounded-2xl flex items-center justify-center text-[color:var(--accent-3)]">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-6 border border-[color:var(--border)]">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Overall Progress
-          </span>
-          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-            {completionPercentage}%
-          </span>
+          <span className="text-sm font-medium text-[color:var(--muted)]">Overall Progress</span>
+          <span className="text-sm font-semibold text-[color:var(--accent)]">{completionPercentage}%</span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-[color:var(--surface-2)] rounded-full h-3 overflow-hidden">
           <div
-            className="bg-gradient-to-r from-blue-500 to-green-500 h-full rounded-full transition-all duration-500 ease-out"
+            className="bg-gradient-to-r from-sky-500 to-emerald-500 h-full rounded-full transition-all duration-500 ease-out"
             style={{ width: `${completionPercentage}%` }}
           />
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        <p className="text-xs text-[color:var(--muted-2)] mt-2">
           {stats.completed} of {stats.total} tasks completed
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+      <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-4 border border-[color:var(--border)]">
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[color:var(--muted-2)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text"
             placeholder="Search todos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full pl-10 pr-4 py-2 border border-[color:var(--border)] rounded-xl focus:ring-2 focus:ring-[color:var(--accent)] bg-[color:var(--surface)] text-[color:var(--foreground)]"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--muted-2)] hover:text-[color:var(--foreground)]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -316,71 +242,46 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setFilter("all")}
-          className={`pb-4 px-2 font-medium transition-colors ${
-            filter === "all"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          All ({stats.total})
-        </button>
-        <button
-          onClick={() => setFilter("pending")}
-          className={`pb-4 px-2 font-medium transition-colors ${
-            filter === "pending"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Pending ({stats.pending})
-        </button>
-        <button
-          onClick={() => setFilter("completed")}
-          className={`pb-4 px-2 font-medium transition-colors ${
-            filter === "completed"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Completed ({stats.completed})
-        </button>
+      <div className="flex gap-4 border-b border-[color:var(--border)]">
+        {[
+          { key: "all", label: `All (${stats.total})` },
+          { key: "pending", label: `Pending (${stats.pending})` },
+          { key: "completed", label: `Completed (${stats.completed})` },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setFilter(tab.key as TodoFilter)}
+            className={`pb-4 px-2 font-medium transition-colors ${
+              filter === tab.key
+                ? "text-[color:var(--accent)] border-b-2 border-[color:var(--accent)]"
+                : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Todo List */}
       <div className="space-y-4">
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-pulse space-y-4">
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              <div className="h-20 bg-[color:var(--surface-2)] rounded-2xl"></div>
+              <div className="h-20 bg-[color:var(--surface-2)] rounded-2xl"></div>
+              <div className="h-20 bg-[color:var(--surface-2)] rounded-2xl"></div>
             </div>
           </div>
         ) : filteredTodos.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
+          <div className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-12 text-center border border-[color:var(--border)]">
+            <div className="w-16 h-16 bg-[color:var(--surface-2)] rounded-2xl mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-[color:var(--muted-2)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-[color:var(--foreground)] mb-2">
               {searchQuery ? "No matching todos" : "No todos yet"}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-[color:var(--muted)]">
               {searchQuery
                 ? `No todos match "${searchQuery}"`
                 : filter === "all"
@@ -390,7 +291,7 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-4 px-4 py-2 bg-[color:var(--accent)] text-white rounded-xl hover:translate-y-[-1px] transition-all"
               >
                 Clear Search
               </button>
@@ -400,99 +301,66 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
           filteredTodos.map((todo) => (
             <div
               key={todo.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] animate-fadeIn"
+              className="bg-[color:var(--surface)] rounded-2xl shadow-soft p-4 hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px] border border-[color:var(--border)] animate-fadeIn"
             >
               <div className="flex items-start gap-4">
-                {/* Checkbox */}
-                <button
-                  onClick={() => handleToggleComplete(todo.id)}
-                  className="mt-1 flex-shrink-0"
-                >
+                <button onClick={() => handleToggleComplete(todo.id)} className="mt-1 flex-shrink-0">
                   {todo.completed ? (
-                    <svg
-                      className="w-6 h-6 text-green-600 dark:text-green-400"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-6 h-6 text-[color:var(--accent-2)]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                     </svg>
                   ) : (
-                    <svg
-                      className="w-6 h-6 text-gray-400 dark:text-gray-600"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-6 h-6 text-[color:var(--muted-2)]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
                     </svg>
                   )}
                 </button>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <h3
-                    className={`text-lg font-medium mb-1 ${
-                      todo.completed
-                        ? "line-through text-gray-500 dark:text-gray-600"
-                        : "text-gray-900 dark:text-white"
-                    }`}
-                  >
-                    {todo.title}
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs px-2 py-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--muted)]">
+                      ID {todo.id}
+                    </span>
+                    <h3
+                      className={`text-lg font-medium ${
+                        todo.completed
+                          ? "line-through text-[color:var(--muted-2)]"
+                          : "text-[color:var(--foreground)]"
+                      }`}
+                    >
+                      {todo.title}
+                    </h3>
+                  </div>
                   {todo.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-sm text-[color:var(--muted)] mt-2">
                       {todo.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                    <span>
-                      Created {new Date(todo.created_at).toLocaleDateString()}
-                    </span>
+                  <div className="flex items-center gap-4 text-xs text-[color:var(--muted-2)] mt-2">
+                    <span>Created {new Date(todo.created_at).toLocaleDateString()}</span>
                     {todo.updated_at !== todo.created_at && (
-                      <span>
-                        Updated {new Date(todo.updated_at).toLocaleDateString()}
-                      </span>
+                      <span>Updated {new Date(todo.updated_at).toLocaleDateString()}</span>
                     )}
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEditClick(todo)}
-                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    className="p-2 text-[color:var(--accent)] hover:bg-[color:var(--surface-2)] rounded-lg transition-colors"
                     title="Edit todo"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
                   <button
                     onClick={() => handleDelete(todo.id)}
-                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="p-2 text-red-500 hover:bg-[color:var(--surface-2)] rounded-lg transition-colors"
                     title="Delete todo"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
@@ -502,7 +370,6 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
         )}
       </div>
 
-      {/* Create Todo Modal */}
       <CreateTodoModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -510,7 +377,6 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
         onTodoCreated={handleTodoCreated}
       />
 
-      {/* Edit Todo Modal */}
       <EditTodoModal
         isOpen={isEditModalOpen}
         onClose={() => {

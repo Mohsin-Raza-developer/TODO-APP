@@ -17,53 +17,52 @@ export function LockedChatPlaceholder() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg p-8 shadow-lg">
+        <div className="flex flex-col items-center justify-center min-h-[560px] bg-[color:var(--surface)] rounded-3xl border border-[color:var(--border)] p-10 shadow-soft">
             <div className="text-center space-y-6 max-w-md">
-                {/* Lock Icon SVG */}
-                <svg
-                    className="w-20 h-20 mx-auto text-gray-400 dark:text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                </svg>
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 via-teal-500 to-amber-400 flex items-center justify-center shadow-soft">
+                    <svg
+                        className="w-8 h-8 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                    </svg>
+                </div>
 
-                {/* Heading */}
-                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">
+                <h2 className="text-3xl font-semibold text-[color:var(--foreground)]">
                     Sign in to Chat
                 </h2>
 
-                {/* Description */}
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Please sign in to access the AI chatbot and manage your tasks through conversation.
+                <p className="text-base text-[color:var(--muted)]">
+                    Unlock the AI assistant to summarize tasks, answer questions, and keep your workflow moving.
                 </p>
 
-                {/* Sign In Button */}
-                <button
-                    onClick={handleSignIn}
-                    className="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                    aria-label="Sign in to access chat"
-                >
-                    Sign In
-                </button>
-
-                {/* Additional Info */}
-                <p className="text-sm text-gray-500 dark:text-gray-500">
-                    Don't have an account?{' '}
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={handleSignIn}
+                        className="w-full px-8 py-4 bg-[color:var(--accent)] hover:translate-y-[-1px] text-white font-semibold rounded-xl shadow-soft transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--background)]"
+                        aria-label="Sign in to access chat"
+                    >
+                        Sign In
+                    </button>
                     <button
                         onClick={() => router.push('/signup?redirect=/chat')}
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium underline"
+                        className="w-full px-8 py-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface)] transition-colors"
                     >
-                        Sign up here
+                        Create an account
                     </button>
+                </div>
+
+                <p className="text-xs text-[color:var(--muted-2)]">
+                    Already have access? Sign in to continue.
                 </p>
             </div>
         </div>
