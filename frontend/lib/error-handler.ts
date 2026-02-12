@@ -13,6 +13,50 @@
 
 import { APIError, getErrorMessage, APIErrorResponse } from "@/types/api";
 
+export type ResendOutcome =
+  | "sent"
+  | "cooldown"
+  | "daily_limit"
+  | "already_verified"
+  | "failed";
+
+export function getResendOutcomeMessage(
+  outcome: ResendOutcome,
+  context?: { seconds?: number; remaining?: number }
+): string {
+  switch (outcome) {
+    case "sent":
+      return "Verification email sent. Check your inbox.";
+    case "cooldown":
+      return `Please wait ${context?.seconds ?? 60}s before resending.`;
+    case "daily_limit":
+      return "Daily resend limit reached (5/day). Try again tomorrow.";
+    case "already_verified":
+      return "Your email is already verified. You can access dashboard now.";
+    default:
+      return "Failed to resend verification email. Please try again.";
+  }
+}
+
+export function mapResendErrorToOutcome(error: unknown): ResendOutcome {
+  if (!(error instanceof Error)) {
+    return "failed";
+  }
+
+  const message = error.message.toLowerCase();
+  if (message.includes("already verified") || message.includes("already_verified")) {
+    return "already_verified";
+  }
+  if (message.includes("daily limit") || message.includes("resend_daily_limit_reached")) {
+    return "daily_limit";
+  }
+  if (message.includes("cooldown") || message.includes("resend_cooldown_active")) {
+    return "cooldown";
+  }
+
+  return "failed";
+}
+
 /**
  * Handle API errors and return user-friendly message
  *

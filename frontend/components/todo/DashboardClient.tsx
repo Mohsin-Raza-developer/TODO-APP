@@ -74,7 +74,12 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
       const data = await todoApi.getTodos(userId, filter);
       setTodos(data);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to load todos");
+      const message = err instanceof Error ? err.message : "Failed to load todos";
+      if (message.toLowerCase().includes("verify your email")) {
+        window.location.href = "/verify-email?redirect=/dashboard";
+        return;
+      }
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -242,24 +247,41 @@ export function DashboardClient({ userId, userName }: DashboardClientProps) {
         </div>
       </div>
 
-      <div className="flex gap-4 border-b border-[color:var(--border)]">
-        {[
-          { key: "all", label: `All (${stats.total})` },
-          { key: "pending", label: `Pending (${stats.pending})` },
-          { key: "completed", label: `Completed (${stats.completed})` },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key as TodoFilter)}
-            className={`pb-4 px-2 font-medium transition-colors ${
-              filter === tab.key
-                ? "text-[color:var(--accent)] border-b-2 border-[color:var(--accent)]"
-                : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="inline-flex min-w-full sm:min-w-0 gap-2 p-1 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] shadow-soft">
+          {[
+            { key: "all", label: "All", count: stats.total },
+            { key: "pending", label: "Pending", count: stats.pending },
+            { key: "completed", label: "Completed", count: stats.completed },
+          ].map((tab) => {
+            const isActive = filter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key as TodoFilter)}
+                className={`flex-1 sm:flex-none min-w-[120px] px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-[color:var(--accent)] text-white shadow-soft"
+                    : "text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-2)]"
+                }`}
+                aria-pressed={isActive}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <span>{tab.label}</span>
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-[color:var(--surface-2)] text-[color:var(--muted)]"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-4">

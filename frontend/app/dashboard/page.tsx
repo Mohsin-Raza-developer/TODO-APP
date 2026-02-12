@@ -36,6 +36,10 @@ export default async function DashboardPage() {
     redirect("/login?redirect=/dashboard");
   }
 
+  if (!session.user.emailVerified) {
+    redirect("/verify-email?redirect=/dashboard");
+  }
+
   const user = session.user;
 
   return (

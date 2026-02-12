@@ -12,10 +12,12 @@ from typing import Annotated, Dict, Any
 from sqlmodel import Session, select, text
 from database import get_session
 from datetime import datetime
+import logging
 
 
 # HTTPBearer security scheme for extracting session token from Authorization header
 security = HTTPBearer()
+logger = logging.getLogger(__name__)
 
 
 async def verify_session_token(
@@ -48,9 +50,7 @@ async def verify_session_token(
     """
     token = credentials.credentials
 
-    # Debug logging
-    import logging
-    logging.info(f"Received token: {token[:50]}..." if len(token) > 50 else f"Received token: {token}")
+    logger.info(f"Received token: {token[:50]}..." if len(token) > 50 else f"Received token: {token}")
 
     try:
         # Query Better Auth session table
@@ -64,7 +64,7 @@ async def verify_session_token(
         ).bindparams(token=token)
         result = session.exec(query).first()
 
-        logging.info(f"Database query result: {result}")
+        logger.info(f"Database query result: {result}")
 
         if not result:
             raise HTTPException(
@@ -98,16 +98,66 @@ async def verify_session_token(
     except HTTPException:
         raise
     except Exception as e:
-        import logging
-        logging.error(f"Session verification error: {e}")
+        logger.error(f"Session verification error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
 
 
+async def verify_email_verified(
+    session_data: Annotated[Dict[str, Any], Depends(verify_session_token)],
+    session: Annotated[Session, Depends(get_session)]
+) -> Dict[str, Any]:
+    """
+    Best-effort verification gate for protected endpoints.
+
+    Reads email verification state from Better Auth user table ("user"."emailVerified").
+    If state is explicitly false, access is denied. If metadata is unavailable,
+    this dependency falls back without blocking to preserve compatibility.
+    """
+    user_id = session_data.get("userId")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing userId in session"
+        )
+
+    try:
+        query = text(
+            """
+            SELECT "emailVerified"
+            FROM "user"
+            WHERE id = :user_id
+            """
+        ).bindparams(user_id=user_id)
+        result = session.exec(query).first()
+
+        if result is None:
+            logger.warning(f"No Better Auth user record found for userId={user_id}")
+            return session_data
+
+        email_verified = bool(result[0] if isinstance(result, tuple) else result)
+        if not email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email verification required"
+            )
+
+        session_data["emailVerified"] = True
+        return session_data
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning(
+            "Email verification lookup skipped due to backend compatibility issue: %s",
+            exc
+        )
+        return session_data
+
+
 async def verify_user_ownership(
-    user_id: str, session_data: Annotated[Dict[str, Any], Depends(verify_session_token)]
+    user_id: str, session_data: Annotated[Dict[str, Any], Depends(verify_email_verified)]
 ) -> str:
     """
     Verify that the user_id in URL matches authenticated user from session.

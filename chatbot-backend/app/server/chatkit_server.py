@@ -24,9 +24,18 @@ from chatkit.agents import AgentContext, stream_agent_response, simple_to_agent_
 from app.server.gemini_model_for_agent import gemini_config
 
 from app.models.request_context import RequestContext
-from app.utils.agent_factory import create_agent_for_user
+from app.utils.agent_factory import create_agent_for_user, invalidate_mcp_client_cache
 
 logger = logging.getLogger(__name__)
+
+
+def _is_stale_mcp_stream_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "closedresourceerror" in message
+        or "error invoking mcp tool" in message
+        or "closed resource" in message
+    )
 
 
 class ChatbotServer(ChatKitServer[RequestContext]):
@@ -78,12 +87,6 @@ class ChatbotServer(ChatKitServer[RequestContext]):
             f"Loaded {len(items_page.data)} messages from thread history"
         )
 
-        # Create agent with user-specific instructions
-        agent = await create_agent_for_user(
-            user_id=context.user_id,
-            token=context.token
-        )
-
         # Prepare input items for agent (history + new message)
         input_items = items_page.data
         if input_message:
@@ -101,10 +104,6 @@ class ChatbotServer(ChatKitServer[RequestContext]):
             previous_response_id=None,  # Thread model doesn't have previous_response_id field
         )
 
-        # Run agent with streaming
-        logger.info("Starting agent execution with streaming")
-        result = Runner.run_streamed(agent, converted_items, context=agent_context, run_config=gemini_config)
-
         # Stream events back to frontend
         # If the upstream model doesn't provide a stable item_id, it can default to "__fake_id__",
         # which causes the UI to overwrite prior assistant messages. Remap it to a unique id per response.
@@ -119,35 +118,67 @@ class ChatbotServer(ChatKitServer[RequestContext]):
             return fake_id
 
         event_count = 0
-        try:
-            async for event in stream_agent_response(agent_context, result):
-                if isinstance(event, ThreadItemAddedEvent):
-                    event.item.id = remap_fake_id(event.item.id)
-                elif isinstance(event, ThreadItemUpdatedEvent):
-                    event.item_id = remap_fake_id(event.item_id)
-                elif isinstance(event, ThreadItemDoneEvent):
-                    event.item.id = remap_fake_id(event.item.id)
+        for attempt in range(2):
+            try:
+                # Create agent with user-specific instructions
+                agent = await create_agent_for_user(
+                    user_id=context.user_id,
+                    token=context.token
+                )
 
-                event_count += 1
-                yield event
-        except RateLimitError as e:
-            error_msg = str(e)
-            retry_info = ""
-            match = re.search(r"retry in (\d+\.?\d*)s", error_msg, re.IGNORECASE)
-            if match:
-                try:
-                    retry_seconds = float(match.group(1))
-                    if retry_seconds >= 60:
-                        retry_minutes = int(retry_seconds / 60)
-                        retry_info = f" Please try again in {retry_minutes} minutes."
-                    else:
-                        retry_info = " Please try again in a few seconds."
-                except Exception:
-                    pass
-            raise CustomStreamError(
-                message=f"AI quota exceeded.{retry_info}",
-                allow_retry=True,
-            )
+                # Run agent with streaming
+                logger.info("Starting agent execution with streaming")
+                result = Runner.run_streamed(
+                    agent,
+                    converted_items,
+                    context=agent_context,
+                    run_config=gemini_config
+                )
+
+                async for event in stream_agent_response(agent_context, result):
+                    if isinstance(event, ThreadItemAddedEvent):
+                        event.item.id = remap_fake_id(event.item.id)
+                    elif isinstance(event, ThreadItemUpdatedEvent):
+                        event.item_id = remap_fake_id(event.item_id)
+                    elif isinstance(event, ThreadItemDoneEvent):
+                        event.item.id = remap_fake_id(event.item.id)
+
+                    event_count += 1
+                    yield event
+
+                break
+            except RateLimitError as e:
+                error_msg = str(e)
+                retry_info = ""
+                match = re.search(r"retry in (\d+\.?\d*)s", error_msg, re.IGNORECASE)
+                if match:
+                    try:
+                        retry_seconds = float(match.group(1))
+                        if retry_seconds >= 60:
+                            retry_minutes = int(retry_seconds / 60)
+                            retry_info = f" Please try again in {retry_minutes} minutes."
+                        else:
+                            retry_info = " Please try again in a few seconds."
+                    except Exception:
+                        pass
+                raise CustomStreamError(
+                    message=f"AI quota exceeded.{retry_info}",
+                    allow_retry=True,
+                )
+            except Exception as exc:
+                if _is_stale_mcp_stream_error(exc):
+                    logger.warning(
+                        "Detected stale MCP stream for user=%s; invalidating cache and retrying",
+                        context.user_id,
+                    )
+                    await invalidate_mcp_client_cache(context.user_id)
+                    if attempt == 0 and event_count == 0:
+                        continue
+                    raise CustomStreamError(
+                        message="Connection refreshed. Please try your message again.",
+                        allow_retry=True,
+                    ) from exc
+                raise
 
         logger.info(
             f"Completed streaming {event_count} events for "

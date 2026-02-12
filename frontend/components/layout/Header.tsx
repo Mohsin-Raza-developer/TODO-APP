@@ -30,12 +30,19 @@ export function Header() {
   const { success } = useToast();
   const { data: session, isPending } = authClient.useSession();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    await authClient.signOut();
-    success("Signed out successfully");
-    router.push("/login");
-    setShowDropdown(false);
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await authClient.signOut();
+      success("Signed out successfully");
+      router.push("/login");
+      setShowDropdown(false);
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -73,15 +80,15 @@ export function Header() {
             {session && (
               <>
                 <Link
-                  href="/dashboard"
+                  href={session.user.emailVerified ? "/dashboard" : "/verify-email?redirect=/dashboard"}
                   className={`relative text-sm font-medium transition-colors ${
-                    pathname === "/dashboard"
+                    pathname === "/dashboard" || pathname === "/verify-email"
                       ? "text-[color:var(--accent)]"
                       : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                   }`}
                 >
-                  Dashboard
-                  {pathname === "/dashboard" && (
+                  {session.user.emailVerified ? "Dashboard" : "Verify Email"}
+                  {(pathname === "/dashboard" || pathname === "/verify-email") && (
                     <span className="absolute left-0 -bottom-2 h-0.5 w-full bg-[color:var(--accent)] rounded-full" />
                   )}
                 </Link>
@@ -138,10 +145,10 @@ export function Header() {
           {!isPending && session && (
             <div className="md:hidden flex-1 flex justify-center">
               <Link
-                href="/dashboard"
+                href={session.user.emailVerified ? "/dashboard" : "/verify-email?redirect=/dashboard"}
                 className="px-4 py-2 text-sm font-medium text-[color:var(--foreground)] bg-[color:var(--surface)] border border-[color:var(--border)] rounded-lg hover:bg-[color:var(--surface-2)] transition-colors"
               >
-                Dashboard
+                {session.user.emailVerified ? "Dashboard" : "Verify Email"}
               </Link>
             </div>
           )}
@@ -202,17 +209,18 @@ export function Header() {
                       </p>
                     </div>
                     <Link
-                      href="/dashboard"
+                      href={session.user.emailVerified ? "/dashboard" : "/verify-email?redirect=/dashboard"}
                       onClick={() => setShowDropdown(false)}
                       className="block px-4 py-2 text-sm text-[color:var(--muted)] hover:bg-[color:var(--surface-2)] transition-colors"
                     >
-                      Dashboard
+                      {session.user.emailVerified ? "Dashboard" : "Verify Email"}
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[color:var(--surface-2)] transition-colors"
+                      disabled={isSigningOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[color:var(--surface-2)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Sign Out
+                      {isSigningOut ? "Signing Out..." : "Sign Out"}
                     </button>
                   </div>
                 )}

@@ -12,12 +12,45 @@ import { Todo, TodoCreate, TodoUpdate, TodoFilter } from "@/types/todo";
  */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      error: "unknown_error",
-      message: "An unexpected error occurred",
-    }));
+    const rawText = await response.text();
+    const contentType = response.headers.get("content-type") || "";
+    const isHtmlResponse =
+      contentType.includes("text/html") ||
+      rawText.trimStart().toLowerCase().startsWith("<!doctype html") ||
+      rawText.trimStart().toLowerCase().startsWith("<html");
 
-    throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+    let parsedError: { error?: string; message?: string; detail?: string } | null = null;
+    if (rawText && !isHtmlResponse) {
+      try {
+        parsedError = JSON.parse(rawText) as {
+          error?: string;
+          message?: string;
+          detail?: string;
+        };
+      } catch {
+        parsedError = null;
+      }
+    }
+
+    let message =
+      parsedError?.message ||
+      parsedError?.detail ||
+      rawText ||
+      `HTTP ${response.status}: ${response.statusText}`;
+
+    if (isHtmlResponse) {
+      if (response.status === 401) {
+        message = "Session expired. Please login again.";
+      } else if (response.status === 403) {
+        message = "Access denied. Please verify your email first.";
+      } else if (response.status === 404) {
+        message = "Todo endpoint not found. Check frontend API route setup.";
+      } else {
+        message = "Server returned an HTML error page. Check Next.js terminal logs for the failing /api/todos request.";
+      }
+    }
+
+    throw new Error(message);
   }
 
   // Handle 204 No Content (delete operations)
