@@ -41,6 +41,7 @@ export interface AuthState {
   session: UserSession | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  verificationAccessMode?: "limited" | "full";
 }
 
 /**

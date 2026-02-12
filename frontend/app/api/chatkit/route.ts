@@ -32,6 +32,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        if (!session.user.emailVerified) {
+            return new Response(
+                JSON.stringify({ error: 'Email verification required' }),
+                {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+        }
+
         // Get JWT token from session
         const token = session.session?.token;
 
@@ -52,14 +62,29 @@ export async function POST(request: NextRequest) {
         // Forward request to chatbot backend
         const backendUrl = `${CHATBOT_BACKEND_URL}/api/chatkit`;
 
-        const response = await fetch(backendUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body,
-        });
+        let response: Response;
+        try {
+            response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body,
+            });
+        } catch (error) {
+            console.error('ChatKit backend unreachable:', error);
+            return new Response(
+                JSON.stringify({
+                    error: 'chatkit_backend_unreachable',
+                    message: `Chat backend is not running at ${CHATBOT_BACKEND_URL}`,
+                }),
+                {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+        }
 
         // Return backend response (preserves streaming)
         return new Response(response.body, {

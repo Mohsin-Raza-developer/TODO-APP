@@ -923,3 +923,13 @@ For detailed specifications:
 - `specs/003-rest-api/plan.md` - Technical architecture
 - `specs/003-rest-api/contracts/` - API contracts + OpenAPI schema
 - `specs/003-rest-api/quickstart.md` - Quick start guide
+
+## Email Verification Enforcement Notes (Feature 008)
+
+- Protected task endpoints now include a defensive dependency chain:
+  - `verify_session_token`
+  - `verify_email_verified`
+  - `verify_user_ownership`
+- If Better Auth user metadata indicates `emailVerified=false`, backend returns `403` with `Email verification required`.
+- This backend guard is intentionally defensive; frontend middleware/server checks still apply first.
+- If Better Auth user lookup is temporarily unavailable, dependency logs warning and preserves compatibility behavior instead of crashing requests.

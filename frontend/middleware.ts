@@ -22,6 +22,44 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+function getEmailVerifiedFromCookie(
+  sessionDataCookie: string | undefined
+): boolean | null {
+  if (!sessionDataCookie) {
+    return null;
+  }
+
+  try {
+    const decoded = atob(sessionDataCookie);
+    const sessionData = JSON.parse(decoded) as {
+      session?: { user?: { emailVerified?: boolean } };
+      user?: { emailVerified?: boolean };
+      emailVerified?: boolean;
+    };
+    return Boolean(
+      sessionData.session?.user?.emailVerified ??
+        sessionData.user?.emailVerified ??
+        sessionData.emailVerified
+    );
+  } catch {
+    try {
+      const decoded = decodeURIComponent(sessionDataCookie);
+      const sessionData = JSON.parse(decoded) as {
+        session?: { user?: { emailVerified?: boolean } };
+        user?: { emailVerified?: boolean };
+        emailVerified?: boolean;
+      };
+      return Boolean(
+        sessionData.session?.user?.emailVerified ??
+          sessionData.user?.emailVerified ??
+          sessionData.emailVerified
+      );
+    } catch {
+      return null;
+    }
+  }
+}
+
 /**
  * Middleware function
  *
@@ -45,8 +83,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Cookie exists - let request proceed
-    // Server component will verify actual session validity with database
+    const sessionDataCookie = request.cookies.get("better-auth.session_data")?.value;
+    const emailVerified = getEmailVerifiedFromCookie(sessionDataCookie);
+    if (emailVerified === false) {
+      const verifyUrl = new URL("/verify-email", request.url);
+      verifyUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      return NextResponse.redirect(verifyUrl);
+    }
   }
 
   // Allow request to proceed

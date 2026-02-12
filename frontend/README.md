@@ -320,3 +320,32 @@ If you encounter problems not covered in this guide:
 **Version**: 1.0
 **Last Updated**: 2026-01-16
 **Maintainer**: Development Team
+
+## Email Verification (Feature 008)
+
+### Behavior
+
+- New signup automatically gets a verification email.
+- Unverified users can sign in, but protected areas are blocked:
+  - `/dashboard`
+  - Todo API routes
+  - Chat API proxy
+- Unverified users are redirected to `/verify-email`.
+- Verified users are redirected to dashboard (or requested protected redirect path).
+
+### Resend Policy
+
+- Cooldown: 60 seconds between resend attempts.
+- Daily limit: 5 resend attempts per account from client flow.
+- Server-side send guard also enforces anti-spam limits during verification email dispatch.
+
+### Required Env Vars (Frontend Auth Mailer)
+
+```bash
+RESEND_API_KEY=your_resend_api_key
+AUTH_FROM_EMAIL=onboarding@your-verified-domain.com
+```
+
+Notes:
+- In Resend testing mode, only your verified recipient can receive emails.
+- For production recipients, verify your sending domain in Resend and use that domain in `AUTH_FROM_EMAIL`.

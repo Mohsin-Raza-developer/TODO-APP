@@ -9,12 +9,30 @@
 
 import { useRouter } from 'next/navigation';
 
-export function LockedChatPlaceholder() {
+interface LockedChatPlaceholderProps {
+    mode?: 'unauthenticated' | 'unverified';
+    onVerifyEmail?: () => void;
+}
+
+export function LockedChatPlaceholder({
+    mode = 'unauthenticated',
+    onVerifyEmail,
+}: LockedChatPlaceholderProps) {
     const router = useRouter();
 
     const handleSignIn = () => {
         router.push('/login?redirect=/chat');
     };
+
+    const handleVerifyEmail = () => {
+        if (onVerifyEmail) {
+            onVerifyEmail();
+            return;
+        }
+        router.push('/verify-email?redirect=/dashboard');
+    };
+
+    const isUnverifiedMode = mode === 'unverified';
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[560px] bg-[color:var(--surface)] rounded-3xl border border-[color:var(--border)] p-10 shadow-soft">
@@ -38,31 +56,47 @@ export function LockedChatPlaceholder() {
                 </div>
 
                 <h2 className="text-3xl font-semibold text-[color:var(--foreground)]">
-                    Sign in to Chat
+                    {isUnverifiedMode ? 'Verify Email to Chat' : 'Sign in to Chat'}
                 </h2>
 
                 <p className="text-base text-[color:var(--muted)]">
-                    Unlock the AI assistant to summarize tasks, answer questions, and keep your workflow moving.
+                    {isUnverifiedMode
+                        ? 'Your account is logged in but email verification is required before chat access.'
+                        : 'Unlock the AI assistant to summarize tasks, answer questions, and keep your workflow moving.'}
                 </p>
 
                 <div className="flex flex-col gap-3">
-                    <button
-                        onClick={handleSignIn}
-                        className="w-full px-8 py-4 bg-[color:var(--accent)] hover:translate-y-[-1px] text-white font-semibold rounded-xl shadow-soft transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--background)]"
-                        aria-label="Sign in to access chat"
-                    >
-                        Sign In
-                    </button>
-                    <button
-                        onClick={() => router.push('/signup?redirect=/chat')}
-                        className="w-full px-8 py-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface)] transition-colors"
-                    >
-                        Create an account
-                    </button>
+                    {isUnverifiedMode ? (
+                        <button
+                            onClick={handleVerifyEmail}
+                            className="w-full px-8 py-4 bg-[color:var(--accent)] hover:translate-y-[-1px] text-white font-semibold rounded-xl shadow-soft transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--background)]"
+                            aria-label="Verify email to access chat"
+                        >
+                            Verify Email
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleSignIn}
+                                className="w-full px-8 py-4 bg-[color:var(--accent)] hover:translate-y-[-1px] text-white font-semibold rounded-xl shadow-soft transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--background)]"
+                                aria-label="Sign in to access chat"
+                            >
+                                Sign In
+                            </button>
+                            <button
+                                onClick={() => router.push('/signup?redirect=/chat')}
+                                className="w-full px-8 py-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface)] transition-colors"
+                            >
+                                Create an account
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <p className="text-xs text-[color:var(--muted-2)]">
-                    Already have access? Sign in to continue.
+                    {isUnverifiedMode
+                        ? 'After verification, chat access will unlock automatically.'
+                        : 'Already have access? Sign in to continue.'}
                 </p>
             </div>
         </div>

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUserIdFromSession } from "@/lib/auth-helper";
+import { getSessionAccessFromRequest } from "@/lib/auth-helper";
 
 const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -15,7 +15,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { userId, error } = getUserIdFromSession(request);
+    const { userId, sessionToken, emailVerified, error } = await getSessionAccessFromRequest(request);
 
     if (error || !userId) {
       return NextResponse.json(
@@ -24,10 +24,19 @@ export async function PATCH(
       );
     }
 
-    // Better Auth session_token format: "token.signature"
-    // Database only stores the first part (token), so we split it
-    const sessionTokenFull = request.cookies.get("better-auth.session_token")?.value || "";
-    const sessionToken = sessionTokenFull.split('.')[0]; // Extract only token part
+    if (!emailVerified) {
+      return NextResponse.json(
+        { error: "forbidden", message: "Email verification required" },
+        { status: 403 }
+      );
+    }
+
+    if (!sessionToken) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "Missing session token" },
+        { status: 401 }
+      );
+    }
 
     const response = await fetch(
       `${FASTAPI_URL}/api/${userId}/tasks/${id}/complete`,

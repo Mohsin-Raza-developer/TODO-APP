@@ -5,24 +5,69 @@ with GPT-4o-mini model, user-specific instructions, and MCP client integration.
 """
 
 import asyncio
+import inspect
 import logging
-from typing import Dict, Tuple
+import time
+from dataclasses import dataclass
 
-from agents import Agent,ModelSettings
+from agents import Agent, ModelSettings
 from agents.mcp import MCPServerStreamableHttp
 
 from app.config import settings
 
-
-from urllib.parse import urlparse
-
-# ... imports ...
-
 logger = logging.getLogger(__name__)
 
-# Global cache for MCP clients: (user_id, token) -> MCPServerStreamableHttp
-# _mcp_client_cache: Dict[Tuple[str, str], MCPServerStreamableHttp] = {}
-# _mcp_client_lock = asyncio.Lock()
+MCP_CLIENT_IDLE_TTL_SECONDS = 10 * 60
+
+
+@dataclass
+class CachedMCPClient:
+    client: MCPServerStreamableHttp
+    token: str
+    last_used_monotonic: float
+
+
+_mcp_client_cache: dict[str, CachedMCPClient] = {}
+_mcp_client_lock = asyncio.Lock()
+
+
+async def _safe_close_mcp_client(client: MCPServerStreamableHttp) -> None:
+    """Close MCP client with best-effort compatibility across SDK versions."""
+    for method_name in ("cleanup", "close", "disconnect"):
+        method = getattr(client, method_name, None)
+        if method is None:
+            continue
+        try:
+            result = method()
+            if inspect.isawaitable(result):
+                await result
+            logger.info("Closed MCP client via %s()", method_name)
+            return
+        except Exception:
+            logger.warning("Failed to close MCP client via %s()", method_name, exc_info=True)
+
+
+async def _evict_expired_clients(now_monotonic: float) -> None:
+    expired_user_ids: list[str] = []
+    for user_id, cached in _mcp_client_cache.items():
+        if now_monotonic - cached.last_used_monotonic > MCP_CLIENT_IDLE_TTL_SECONDS:
+            expired_user_ids.append(user_id)
+
+    for user_id in expired_user_ids:
+        stale = _mcp_client_cache.pop(user_id, None)
+        if stale:
+            await _safe_close_mcp_client(stale.client)
+            logger.info("Evicted stale MCP client cache for user=%s", user_id)
+
+
+async def invalidate_mcp_client_cache(user_id: str) -> None:
+    """Invalidate cached MCP client for a specific user."""
+    async with _mcp_client_lock:
+        cached = _mcp_client_cache.pop(user_id, None)
+        if not cached:
+            return
+        await _safe_close_mcp_client(cached.client)
+        logger.info("Invalidated MCP client cache for user=%s", user_id)
 
 
 async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreamableHttp:
@@ -36,9 +81,24 @@ async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreama
     Returns:
         A connected MCPServerStreamableHttp instance.
     """
-    # cache_key = (user_id, token)
-    
-    mcp_client = MCPServerStreamableHttp(
+    now_monotonic = time.monotonic()
+
+    async with _mcp_client_lock:
+        await _evict_expired_clients(now_monotonic)
+
+        cached = _mcp_client_cache.get(user_id)
+        if cached and cached.token == token:
+            cached.last_used_monotonic = now_monotonic
+            logger.info("MCP cache hit for user=%s", user_id)
+            return cached.client
+
+        if cached:
+            logger.info("MCP cache refresh for user=%s (token changed)", user_id)
+            _mcp_client_cache.pop(user_id, None)
+            await _safe_close_mcp_client(cached.client)
+
+        logger.info("MCP cache miss for user=%s; creating new connection", user_id)
+        mcp_client = MCPServerStreamableHttp(
             name="todo-mcp",
             params={
                 "url": settings.mcp_server_url,
@@ -46,22 +106,32 @@ async def get_or_create_mcp_client(user_id: str, token: str) -> MCPServerStreama
                     "Authorization": token,  # Already in "Bearer <token>" format
                 },
                 "timeout": settings.mcp_timeout,
-                "http2": False, 
+                "http2": False,
             },
             cache_tools_list=True,  # Cache tool list for performance
             client_session_timeout_seconds=settings.mcp_timeout,
-        ) 
+        )
 
-    # Connect with retry logic
-    await mcp_client.connect()
-    logger.info(f"Successfully connected MCP client for user {user_id}")
-    return mcp_client
+        try:
+            await mcp_client.connect()
+        except Exception:
+            await _safe_close_mcp_client(mcp_client)
+            logger.exception("MCP connect failed for user=%s", user_id)
+            raise
+
+        _mcp_client_cache[user_id] = CachedMCPClient(
+            client=mcp_client,
+            token=token,
+            last_used_monotonic=now_monotonic,
+        )
+        logger.info("Successfully connected MCP client for user=%s", user_id)
+        return mcp_client
 
 async def create_agent_for_user(user_id: str, token: str) -> Agent:
     # ... docstring ...
-    
+
     # Get cached or new MCP client
-    mcp_client = await get_or_create_mcp_client(user_id, token) 
+    mcp_client = await get_or_create_mcp_client(user_id, token)
 
     # Create agent with MCP tools and user-specific instructions
     agent = Agent(
@@ -90,7 +160,7 @@ You have access to todo management tools through the MCP server. Use them to hel
 - Be encouraging and supportive
 - Format task lists nicely with numbers or bullets,
         """.strip(),
-        model_settings = ModelSettings(parallel_tool_calls=True,max_tokens=250),
+        model_settings=ModelSettings(parallel_tool_calls=True, max_tokens=250),
         mcp_servers=[mcp_client],  # Attach MCP server with authenticated token
     )
 

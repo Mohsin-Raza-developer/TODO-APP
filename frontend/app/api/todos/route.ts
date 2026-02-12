@@ -7,13 +7,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUserIdFromSession } from "@/lib/auth-helper";
+import { getSessionAccessFromRequest } from "@/lib/auth-helper";
 
 const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, error } = getUserIdFromSession(request);
+    const { userId, sessionToken, emailVerified, error } = await getSessionAccessFromRequest(request);
 
     if (error || !userId) {
       return NextResponse.json(
@@ -22,14 +22,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!emailVerified) {
+      return NextResponse.json(
+        { error: "forbidden", message: "Email verification required" },
+        { status: 403 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status") || "all";
-
-    // Get session token for backend authorization
-    // Better Auth session_token format: "token.signature"
-    // Database only stores the first part (token), so we split it
-    const sessionTokenFull = request.cookies.get("better-auth.session_token")?.value || "";
-    const sessionToken = sessionTokenFull.split('.')[0]; // Extract only token part
+    if (!sessionToken) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "Missing session token" },
+        { status: 401 }
+      );
+    }
 
     // Forward to FastAPI backend with user ID
     const response = await fetch(
@@ -72,7 +79,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, error } = getUserIdFromSession(request);
+    const { userId, sessionToken, emailVerified, error } = await getSessionAccessFromRequest(request);
 
     if (error || !userId) {
       return NextResponse.json(
@@ -81,13 +88,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    if (!emailVerified) {
+      return NextResponse.json(
+        { error: "forbidden", message: "Email verification required" },
+        { status: 403 }
+      );
+    }
 
-    // Get session token for backend authorization
-    // Better Auth session_token format: "token.signature"
-    // Database only stores the first part (token), so we split it
-    const sessionTokenFull = request.cookies.get("better-auth.session_token")?.value || "";
-    const sessionToken = sessionTokenFull.split('.')[0]; // Extract only token part
+    const body = await request.json();
+    if (!sessionToken) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "Missing session token" },
+        { status: 401 }
+      );
+    }
 
     // Forward to FastAPI backend
     const response = await fetch(`${FASTAPI_URL}/api/${userId}/tasks`, {

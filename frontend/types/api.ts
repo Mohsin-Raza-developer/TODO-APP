@@ -157,10 +157,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Server errors (5xx)
   internal_server_error: "An unexpected error occurred. Please try again later.",
   service_unavailable: "Service is temporarily unavailable. Please try again later.",
+  email_verification_required: "Please verify your email to access protected features.",
 
   // Generic fallback
   unknown_error: "An unexpected error occurred. Please try again.",
 };
+
+export const VERIFICATION_MESSAGES = {
+  pending: "Please verify your email to continue.",
+  sent: "Verification email sent. Check your inbox.",
+  required: "Email verification required to access this resource.",
+} as const;
 
 /**
  * Get user-friendly error message from error type

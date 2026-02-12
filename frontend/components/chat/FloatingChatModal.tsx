@@ -213,13 +213,15 @@ export function FloatingChatModal({ isOpen, onClose }: FloatingChatModalProps) {
 
                 {/* Chat Content */}
                 <div className="flex-1 overflow-hidden">
-                    {session?.user?.id ? (
+                    {session?.user?.id && session.user.emailVerified ? (
                         <ChatKit
                             control={control}
                             className="w-full h-full"
                         />
                     ) : (
-                        <LockedChatPlaceholder />
+                        <LockedChatPlaceholder
+                            mode={session?.user?.id ? 'unverified' : 'unauthenticated'}
+                        />
                     )}
                 </div>
 
